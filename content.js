@@ -61,41 +61,15 @@ function setAngularValue(el, text) {
 
 /**
  * Attempts to expand the Extended HPI section by clicking on the HPI area
- * Tries multiple strategies to find the clickable element
  * @returns {boolean} True if an element was found and clicked, false otherwise
  */
 function expandExtendedHPI() {
-  // Strategy 1: Look for the specific HPI findings nested area by ID
-  const hpiArea = document.querySelector('#hpifindingNested');
-  if (hpiArea) {
-    hpiArea.click();
-    hpiArea.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+  const hpiElement = document.querySelector('div[dragula="HPIFINDINGSNESTED"]');
+  if (hpiElement) {
+    hpiElement.click();
+    hpiElement.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
     return true;
   }
-  
-  // Strategy 2: Look for HPI section using dragula attribute
-  const hpiDragula = document.querySelector('div[dragula="HPICHILDREN"]');
-  if (hpiDragula) {
-    hpiDragula.click();
-    hpiDragula.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-    return true;
-  }
-  
-  // Strategy 3: Look for elements with chart-hpi class
-  const chartHpi = document.querySelector('.chart-hpi-nowrap-finding');
-  if (chartHpi) {
-    chartHpi.click();
-    chartHpi.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-    return true;
-  }
-  
-  // Strategy 4: Fallback - find any element with 'hpi' in the ID
-  const allElements = document.querySelectorAll('[id*="hpi"], [id*="HPI"]');
-  if (allElements.length > 0) {
-    allElements[0].click();
-    return true;
-  }
-  
   return false;
 }
 
