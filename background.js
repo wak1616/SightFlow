@@ -10,7 +10,7 @@ chrome.commands.onCommand.addListener(async (command) => {
   if (command === 'sf-insert-hpi') {
     chrome.tabs.sendMessage(tab.id, {
       type: 'INSERT_HPI',
-      text: 'Patient presents with blurry vision OU, despite the use of glasses, as well as increased glare. This has worsened over the past 6 months.The patient has been told he may have cataracts.'
+      extendedhpi_text: 'Patient presents with blurry vision OU, despite the use of glasses, as well as increased glare. This has worsened over the past 6 months. The patient has been told he may have cataracts.'
     });
   }
 });
