@@ -13,4 +13,13 @@ chrome.commands.onCommand.addListener(async (command) => {
       extendedhpi_text: 'Patient presents with blurry vision OU, despite the use of glasses, as well as increased glare. This has worsened over the past 6 months. The patient has been told he may have cataracts.'
     });
   }
+  
+  // Handle Alt+Shift+P shortcut - Insert text into PSFH/ROS
+  if (command === 'sf-insert-psfhros') {
+    chrome.tabs.sendMessage(tab.id, {
+      type: 'INSERT_PSFHROS',
+      psfhros_text: 'PSFH/ROS content goes here.'
+    });
+  }
 });
+

@@ -16,11 +16,18 @@
   },
   "background": { "service_worker": "background.js" },
   "commands": {
-    "sf-insert-hpi": { "suggested_key": { "default": "Alt+Shift+H" }, "description": "Insert text" }
+    "sf-insert-hpi": { "suggested_key": { "default": "Alt+Shift+H" }, "description": "Insert text" },
+    "sf-insert-psfhros": { "suggested_key": { "default": "Alt+Shift+P" }, "description": "select PMH elements" }
   },
   "content_scripts": [
     {
       "js": ["scripts/history_input.js"],
+      "matches": ["https://app1.intellechart.net/Eye2MVC/Chart/Chart/Index/"],
+      "run_at": "document_idle",
+      "all_frames": true
+    },
+    {
+      "js": ["scripts/psfhros_input.js"],
       "matches": ["https://app1.intellechart.net/Eye2MVC/Chart/Chart/Index/"],
       "run_at": "document_idle",
       "all_frames": true
