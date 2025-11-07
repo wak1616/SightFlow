@@ -21,13 +21,7 @@
   },
   "content_scripts": [
     {
-      "js": ["scripts/shared_constants.js", "scripts/history_input.js"],
-      "matches": ["https://app1.intellechart.net/Eye2MVC/Chart/Chart/Index/"],
-      "run_at": "document_idle",
-      "all_frames": true
-    },
-    {
-      "js": ["scripts/shared_constants.js", "scripts/psfhros_input.js"],
+      "js": ["scripts/shared_utils.js", "scripts/history_input.js", "scripts/psfhros_input.js"],
       "matches": ["https://app1.intellechart.net/Eye2MVC/Chart/Chart/Index/"],
       "run_at": "document_idle",
       "all_frames": true
