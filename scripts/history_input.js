@@ -12,10 +12,6 @@
 
 // Simple logging to confirm script loaded
 console.log('SightFlow content script loaded successfully');
-
-// Timing constants (in milliseconds)
-const EXPANSION_DELAY = 150;    // Wait after expanding HPI section (Angular needs time to render)
-
 /**
  * Finds the Extended HPI textarea
  * @returns {HTMLElement|null} The textarea element or null if not found
@@ -223,9 +219,8 @@ chrome.runtime.onMessage.addListener(async (msg) => {
       return;
     }
     
-    let bounds = extendedhpi_textarea.getBoundingClientRect();
-    
     // Step 2: If textarea is hidden (zero dimensions), try to expand the section
+    let bounds = extendedhpi_textarea.getBoundingClientRect();
     if (bounds.width === 0 || bounds.height === 0) {
       const expanded = expandHPISection();
       
