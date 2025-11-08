@@ -279,39 +279,56 @@ function findTextInputByAttribute(attrString) {
 }
 
 /**
- * Extracts all title attribute values from divs within a parent div with class "scrollable"
- * Finds the scrollable div with the most title elements (typically the medical history list)
+ * Extracts all title attribute values from divs within a scrollable div
+ * Finds the scrollable div by checking if its first child div has a specific attribute
+ * Note: Angular binds attributes as attr.data-qa, not data-qa, so we need to check the attribute directly
+ * @param {string} attrString - The full attribute specification for the first child div (e.g., 'attr.data-qa="medicalHxControlMedicalKbItems"')
  * @returns {Array<string>} Array of title values, or empty array if not found
  */
-function extractTitlesFromScrollable() {
-  // Find all divs with class "scrollable"
-  const allScrollableDivs = document.querySelectorAll('div.scrollable');
-  
-  // Loop through all and find the one with the most title elements
-  let maxTitles = 0;
-  let bestTitles = [];
-  
-  for (let i = 0; i < allScrollableDivs.length; i++) {
-    const div = allScrollableDivs[i];
-    const titledDivs = div.querySelectorAll('div[title]');
-    
-    console.log(`SightFlow: Scrollable div ${i}: titles=${titledDivs.length}`);
-    
-    // Keep track of the div with the most titles
-    if (titledDivs.length > maxTitles) {
-      maxTitles = titledDivs.length;
-      bestTitles = Array.from(titledDivs).map(d => d.getAttribute('title'));
-      console.log(`SightFlow: New best candidate at index ${i} with ${maxTitles} titles`);
-    }
-  }
-  
-  if (maxTitles === 0) {
-    console.log('SightFlow: Could not find any div with class "scrollable" that contains title elements');
+function extractTitlesFromScrollable(attrString) {
+  // Parse the attribute string to extract attribute name and value
+  // Expected format: 'attr.data-qa="medicalHxControlMedicalKbItems"'
+  const match = attrString.match(/^([^=]+)="([^"]+)"$/);
+  if (!match) {
+    console.log(`SightFlow: Invalid attribute string format: "${attrString}". Expected format: 'attr.name="value"'`);
     return [];
   }
   
-  console.log(`SightFlow: Selected scrollable div with ${bestTitles.length} titles`);
-  return bestTitles;
+  const attrName = match[1].trim();
+  const attrValue = match[2];
+  
+  // Find all divs with class "scrollable"
+  const allScrollableDivs = document.querySelectorAll('div.scrollable');
+  console.log(`SightFlow: Found ${allScrollableDivs.length} divs with class "scrollable"`);
+  
+  // Find the correct scrollable div by checking if the first child has the specified attribute
+  let correctScrollableDiv = null;
+  for (let i = 0; i < allScrollableDivs.length; i++) {
+    const scrollableDiv = allScrollableDivs[i];
+    const firstChild = scrollableDiv.firstElementChild;
+    
+    // Check if the first child is a div with the specified attribute
+    if (firstChild && firstChild.tagName.toLowerCase() === 'div') {
+      const attr = firstChild.getAttribute(attrName);
+      
+      if (attr === attrValue) {
+        correctScrollableDiv = scrollableDiv;
+        console.log(`SightFlow: Found correct scrollable div at index ${i} with first child having ${attrName}="${attrValue}"`);
+        break;
+      }
+    }
+  }
+  
+  if (!correctScrollableDiv) {
+    console.log(`SightFlow: Could not find scrollable div with first child having ${attrName}="${attrValue}"`);
+    return [];
+  }
+  
+  // Extract all titles from child divs within the correct scrollable div
+  const titledDivs = correctScrollableDiv.querySelectorAll('div[title]');
+  const titles = Array.from(titledDivs).map(d => d.getAttribute('title'));
+  console.log(`SightFlow: Extracted ${titles.length} titles from the correct scrollable div`);
+  return titles;
 }
 
 

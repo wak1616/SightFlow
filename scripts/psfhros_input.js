@@ -10,16 +10,21 @@ chrome.runtime.onMessage.addListener(async (msg) => {
   
   if (msg?.type === 'INSERT_PSFHROS') {
     console.log('SightFlow PSFHROS: Processing INSERT_PSFHROS command');
-   
-    // STEP 1: Expand the PSFHROS section
+    //***Get patient context (uncomment to use for confirmation dialog, if needed in future)***
+    //const ctx = getContext();
+
+    // STEP 1: Make sure relevant section is collapsed before starting
+    collapse();
+    
+    // STEP 2: Expand the PSFHROS section
     expandByID('#pmHx');
     
     await wait();
     
-    // STEP 2: Extract all available titles from the scrollable div
-    const availableTitles = extractTitlesFromScrollable();
+    // STEP 3: Extract all available titles from the scrollable div (the argument comes from a single child div of the parent div that has class="scrollable")
+    const availableTitles = extractTitlesFromScrollable('attr.data-qa="medicalHxControlMedicalKbItems"');
     
-    // STEP 3: Click PMH problems by Title (only if they exist in the list), otherwise free type the condition(s)
+    // STEP 4: Click PMH problems by Title (only if they exist in the list), otherwise free type the condition(s)
     const conditionsToSelect = ['Negative', 'Diverticulosis', 'Diabetes Type II', 'broken heart'];
     
     for (const condition of conditionsToSelect) {
@@ -44,11 +49,8 @@ chrome.runtime.onMessage.addListener(async (msg) => {
         if (textInput) {
           textInput.click();
           await wait(100); // Small delay to ensure the field is focused
-          
           // Type the condition using setAngularValue
           setAngularValue(textInput, condition);
-          console.log(`SightFlow: Free-texted "${condition}" into medical history field`);
-          
           await wait(100); // Small delay after typing
         } else {
           console.log(`SightFlow: Could not find free text input field for "${condition}"`);
@@ -56,7 +58,7 @@ chrome.runtime.onMessage.addListener(async (msg) => {
       }
     }
 
-    // STEP 4: collapse to save
+    // STEP 5: collapse to save
     collapse();
   }
 });
