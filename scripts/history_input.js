@@ -23,7 +23,7 @@ chrome.runtime.onMessage.addListener(async (msg) => {
     clickElementByTitle('Blurred Vision');
     
     // Step 4 (continued): Click sequence for Eye Location
-    clickVisibleElementByTitle('OU', 'Eye Location');
+    clickVisibleElementByTitle('OU');
     
     // Step 6: Select mental status exam checkbox (if not already selected)
     checkCheckboxByLabel('Mental Status Exam');

@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "manifest_version": 3,
   "description": "Streamlines workflow in Intellechart by providing keyboard shortcuts or copilot (TBD) to insert text into HPI fields",
-  "permissions": ["activeTab", "commands"],
+  "permissions": ["activeTab", "commands", "sidePanel"],
   "host_permissions": ["https://app1.intellechart.net/*"],
   "action": {
     "default_title": "SightFlow"
+  },
+  "side_panel": {
+    "default_path": "sidebar/sidebar.html"
   },
   "icons": {
     "16": "images/icon-16.png",

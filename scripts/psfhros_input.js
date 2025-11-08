@@ -19,10 +19,10 @@ chrome.runtime.onMessage.addListener(async (msg) => {
     // STEP 2: Extract all available titles from the scrollable div
     const availableTitles = extractTitlesFromScrollable();
     
-    // STEP 3: Click PMH problems by Title (only if they exist in the list)
-    const conditionsToSelect = ['Negative', 'Diverticulosis', 'Diabetes Type II'];
+    // STEP 3: Click PMH problems by Title (only if they exist in the list), otherwise free type the condition(s)
+    const conditionsToSelect = ['Negative', 'Diverticulosis', 'Diabetes Type II', 'broken heart'];
     
-    conditionsToSelect.forEach(condition => {
+    for (const condition of conditionsToSelect) {
       // Search for the condition, ignoring leading/trailing whitespace
       const matchedTitle = availableTitles.find(title => 
         title.trim().toLowerCase() === condition.trim().toLowerCase()
@@ -32,12 +32,32 @@ chrome.runtime.onMessage.addListener(async (msg) => {
         console.log(`SightFlow: "${condition}" found as "${matchedTitle}", clicking...`);
         clickElementByTitle(matchedTitle); // Use the original title with whitespace
       } else {
-        console.log(`SightFlow: "${condition}" is NOT available in the list`);
+        console.log(`SightFlow: "${condition}" is NOT available in the list, free-texting it...`);
+        
+        // First need to click on the specific medical history Add button 
+        clickButtonByParentAndTitle('icp-add-button', 'attr.data-qa="medicalHxControllAddButton"', 'Add');
+        await wait(100); // Wait for the Add UI to appear
+        
+        // Try to find the free text input field
+        const textInput = findTextInputByAttribute('attr.data-qa="medicalHxControlUpdateMedicalText"');
+        
+        if (textInput) {
+          textInput.click();
+          await wait(100); // Small delay to ensure the field is focused
+          
+          // Type the condition using setAngularValue
+          setAngularValue(textInput, condition);
+          console.log(`SightFlow: Free-texted "${condition}" into medical history field`);
+          
+          await wait(100); // Small delay after typing
+        } else {
+          console.log(`SightFlow: Could not find free text input field for "${condition}"`);
+        }
       }
-    });
+    }
 
     // STEP 4: collapse to save
-    // collapse();
+    collapse();
   }
 });
 

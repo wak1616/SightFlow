@@ -1,13 +1,17 @@
 # SightFlow Nextech Helper
 
-A Chrome extension that helps streamline workflow in Intellechart by providing keyboard shortcuts to insert text into HPI (History of Present Illness) fields.
+A Chrome extension that helps streamline workflow in Intellechart by providing keyboard shortcuts and a convenient sidebar to insert text into HPI (History of Present Illness) fields and select PMH elements.
 
 ## Features
 
-- **Keyboard Shortcut**: Press `Alt+Shift+H` to insert text into the Extended HPI textarea
+- **Sidebar Interface**: Beautiful side panel with buttons for quick actions
+- **Keyboard Shortcuts**: 
+  - Press `Alt+Shift+H` to insert text into the Extended HPI textarea
+  - Press `Alt+Shift+M` to select PMH (Past Medical History) elements
 - **Smart Field Detection**: Automatically finds and expands the HPI section if needed
-- **Patient Context Awareness**: Shows patient name in confirmation dialog before inserting text
+- **Patient Context Awareness**: Gathers patient context for processing
 - **Angular-Compatible**: Properly triggers change detection for Angular-based forms
+- **Modern UI**: Aesthetically pleasing interface with the SightFlow logo
 
 ## Installation
 
@@ -19,17 +23,32 @@ A Chrome extension that helps streamline workflow in Intellechart by providing k
 
 ## Usage
 
+### Using the Sidebar (Recommended)
+
+1. Navigate to a patient chart in Intellechart (https://app1.intellechart.net/*)
+2. Click the SightFlow extension icon and open the side panel
+3. Use the action buttons:
+   - **Insert HPI** button - Inserts HPI text (equivalent to Alt+Shift+H)
+   - **Select PMH** button - Selects PMH elements (equivalent to Alt+Shift+M)
+4. Status messages will appear to confirm the action
+
+### Using Keyboard Shortcuts
+
 1. Navigate to a patient chart in Intellechart (https://app1.intellechart.net/*)
 2. Press `Alt+Shift+H` to trigger the HPI insertion
-3. Confirm the action in the dialog box
-4. The text will be inserted into the Extended HPI field
+3. Press `Alt+Shift+M` to trigger the PMH selection
+4. The actions will execute automatically
 
 ## Files
 
 - `manifest.json` - Extension configuration and permissions
-- `background.js` - Background service worker handling keyboard shortcuts
-- `content.js` - Content script that interacts with the Intellechart page
-- `content.css` - Minimal styling for the extension
+- `background.js` - Background service worker handling keyboard shortcuts and sidebar messages
+- `scripts/history_input.js` - Content script for HPI insertion
+- `scripts/psfhros_input.js` - Content script for PMH selection
+- `scripts/shared_utils.js` - Shared utility functions
+- `sidebar/sidebar.html` - Sidebar interface
+- `sidebar/sidebar.css` - Sidebar styling
+- `sidebar/sidebar.js` - Sidebar functionality
 
 ## Customization
 

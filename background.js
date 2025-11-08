@@ -30,3 +30,33 @@ chrome.commands.onCommand.addListener(async (command) => {
   }
 });
 
+// Listen for messages from the sidebar
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('SightFlow: Message received in background:', message);
+  
+  if (message.type === 'EXECUTE_COMMAND') {
+    const { command, tabId } = message;
+    
+    // Execute the appropriate command
+    if (command === 'sf-insert-hpi') {
+      console.log('SightFlow: Executing HPI command from sidebar for tab', tabId);
+      chrome.tabs.sendMessage(tabId, {
+        type: 'INSERT_HPI',
+        extendedhpi_text: 'Patient presents with blurry vision OU, despite the use of glasses, as well as increased glare. This has worsened over the past 6 months. The patient has been told he may have cataracts.'
+      });
+      sendResponse({ success: true });
+    } else if (command === 'sf-insert-psfhros') {
+      console.log('SightFlow: Executing PSFHROS command from sidebar for tab', tabId);
+      chrome.tabs.sendMessage(tabId, {
+        type: 'INSERT_PSFHROS',
+        psfhros_text: 'PSFH/ROS content goes here.'
+      });
+      sendResponse({ success: true });
+    } else {
+      sendResponse({ success: false, error: 'Unknown command' });
+    }
+    
+    return true; // Keep the message channel open for async response
+  }
+});
+

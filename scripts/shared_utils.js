@@ -68,14 +68,19 @@ function getContext() {
 }
 
 /**
- * Sets the value of a mat-input textarea in a way that Angular will detect
- * @param {HTMLElement} el - The textarea element
+ * Sets the value of a mat-input textarea or input element in a way that Angular will detect
+ * @param {HTMLElement} el - The textarea or input element
  * @param {string} text - The text to insert
  */
 function setAngularValue(el, text) {
+  // Determine if it's a textarea or input element
+  const isTextarea = el.tagName.toLowerCase() === 'textarea';
+  const prototype = isTextarea ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+  
   // Use the native value setter to bypass Angular's change detection initially
-  const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+  const setter = Object.getOwnPropertyDescriptor(prototype, 'value').set;
   setter.call(el, text);
+  
   // Dispatch input event so Angular detects the change
   el.dispatchEvent(new Event('input', { bubbles: true }));
 }
@@ -133,10 +138,9 @@ function clickElementByTitle(titleText) {
  * Generic helper to find and click a VISIBLE element by title attribute
  * Useful when there may be multiple elements (some hidden) with the same title in the DOM
  * @param {string} titleText - The title attribute value to search for
- * @param {string} elementType - Description for logging (e.g., "Eye Location")
  * @returns {boolean} True if successful, false if element not found
  */
-function clickVisibleElementByTitle(titleText, elementType) {
+function clickVisibleElementByTitle(titleText) {
   const allDivs = document.querySelectorAll('div[title]');
   for (let i = 0; i < allDivs.length; i++) {
     const div = allDivs[i];
@@ -145,12 +149,12 @@ function clickVisibleElementByTitle(titleText, elementType) {
       const bounds = div.getBoundingClientRect();
       if (bounds.width > 0 && bounds.height > 0) {
         div.click();
-        console.log(`SightFlow: Clicked ${elementType}: "${titleText}"`);
+        console.log(`SightFlow: Clicked element with title="${titleText}"`);
         return true;
       }
     }
   }
-  console.log(`SightFlow: Could not find visible ${elementType} element with title="${titleText}"`);
+  console.log(`SightFlow: Could not find visible element with title="${titleText}"`);
   return false;
 }
 
@@ -192,6 +196,89 @@ function checkCheckboxByLabel(labelText) {
 }
 
 /**
+ * Clicks a button with a specific title inside a parent element that has a specific attribute
+ * Note: Angular binds attributes as attr.data-qa, not data-qa, so we need to check the attribute directly
+ * @param {string} parentElement - The parent element selector (e.g., 'icp-add-button')
+ * @param {string} attrString - The full attribute specification (e.g., 'attr.data-qa="medicalHxControllAddButton"')
+ * @param {string} childButtonTitle - The title attribute of the button to click (e.g., "Add")
+ * @returns {boolean} True if successful, false if element not found
+ */
+function clickButtonByParentAndTitle(parentElement, attrString, childButtonTitle) {
+  // Parse the attribute string to extract attribute name and value
+  // Expected format: 'attr.data-qa="medicalHxControllAddButton"'
+  const match = attrString.match(/^([^=]+)="([^"]+)"$/);
+  if (!match) {
+    console.log(`SightFlow: Invalid attribute string format: "${attrString}". Expected format: 'attr.name="value"'`);
+    return false;
+  }
+  
+  const attrName = match[1].trim();
+  const attrValue = match[2];
+  
+  // Find all parent elements and check for the specified attribute
+  const allParents = document.querySelectorAll(parentElement);
+  console.log(`SightFlow: Found ${allParents.length} ${parentElement} elements`);
+  
+  for (let i = 0; i < allParents.length; i++) {
+    const container = allParents[i];
+    // Check for the specified attribute
+    const attr = container.getAttribute(attrName);
+    
+    if (attr === attrValue) {
+      // Found the right container, now find the button inside
+      const button = container.querySelector(`button[title="${childButtonTitle}"]`);
+      if (button) {
+        button.click();
+        console.log(`SightFlow: Clicked button with title="${childButtonTitle}" (parent has ${attrName}="${attrValue}")`);
+        return true;
+      } else {
+        console.log(`SightFlow: Found correct ${parentElement} but no button[title="${childButtonTitle}"] inside`);
+      }
+    }
+  }
+  
+  console.log(`SightFlow: Could not find button with title="${childButtonTitle}" in ${parentElement}[${attrName}="${attrValue}"]`);
+  return false;
+}
+
+/**
+ * Finds a text input element by a specific attribute
+ * Note: Angular binds attributes as attr.data-qa, not data-qa, so we need to check the attribute directly
+ * @param {string} attrString - The full attribute specification (e.g., 'attr.data-qa="medicalHxControlUpdateMedicalText"')
+ * @returns {HTMLElement|null} The matching input element, or null if not found
+ */
+function findTextInputByAttribute(attrString) {
+  // Parse the attribute string to extract attribute name and value
+  // Expected format: 'attr.data-qa="medicalHxControlUpdateMedicalText"'
+  const match = attrString.match(/^([^=]+)="([^"]+)"$/);
+  if (!match) {
+    console.log(`SightFlow: Invalid attribute string format: "${attrString}". Expected format: 'attr.name="value"'`);
+    return null;
+  }
+  
+  const attrName = match[1].trim();
+  const attrValue = match[2];
+  
+  // Find all input[type="text"] elements
+  const allInputs = document.querySelectorAll('input[type="text"]');
+  console.log(`SightFlow: Found ${allInputs.length} input[type="text"] elements`);
+  
+  for (let i = 0; i < allInputs.length; i++) {
+    const input = allInputs[i];
+    // Check for the specified attribute
+    const attr = input.getAttribute(attrName);
+    
+    if (attr === attrValue) {
+      console.log(`SightFlow: Found text input (${i}) with ${attrName}="${attrValue}"`);
+      return input;
+    }
+  }
+  
+  console.log(`SightFlow: Could not find text input with ${attrName}="${attrValue}"`);
+  return null;
+}
+
+/**
  * Extracts all title attribute values from divs within a parent div with class "scrollable"
  * Finds the scrollable div with the most title elements (typically the medical history list)
  * @returns {Array<string>} Array of title values, or empty array if not found
@@ -199,7 +286,6 @@ function checkCheckboxByLabel(labelText) {
 function extractTitlesFromScrollable() {
   // Find all divs with class "scrollable"
   const allScrollableDivs = document.querySelectorAll('div.scrollable');
-  console.log(`SightFlow: Found ${allScrollableDivs.length} divs with class "scrollable"`);
   
   // Loop through all and find the one with the most title elements
   let maxTitles = 0;
