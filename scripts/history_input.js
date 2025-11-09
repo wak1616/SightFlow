@@ -5,14 +5,18 @@
 
 chrome.runtime.onMessage.addListener(async (msg) => {
   if (msg?.type === 'INSERT_HPI') {
-    //***Get patient context (uncomment to use for confirmation dialog, if needed in future)***
-    //const ctx = getContext();
+    console.log('SightFlow HPI: Processing INSERT_HPI command');
+
+    //***Get patient context 
+    const ctx = getContext();
     
     //Step 1: Make sure relevant section is collapsed before starting
     collapse();
 
     // Step 2: Expand the HPI section
-    await expandByID('#hpiCC');
+    expandByID('#hpiCC');
+
+    await wait(500);
 
     // Step 3: Click CC
     clickElementByTitle('CC');

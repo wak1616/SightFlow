@@ -10,18 +10,20 @@ chrome.runtime.onMessage.addListener(async (msg) => {
   
   if (msg?.type === 'INSERT_PSFHROS') {
     console.log('SightFlow PSFHROS: Processing INSERT_PSFHROS command');
-    //***Get patient context (uncomment to use for confirmation dialog, if needed in future)***
-    //const ctx = getContext();
+    
+    //***Get patient context 
+    const ctx = getContext();
 
     // STEP 1: Make sure relevant section is collapsed before starting
     collapse();
     
     // STEP 2: Expand the PSFHROS section
-    await expandByID('#pmHx');
-    
-    // STEP 3: Extract all available titles from the scrollable div (the argument comes from a single child div of the parent div that has class="scrollable")
-    const availableTitles = extractTitlesFromScrollable('attr.data-qa="medicalHxControlMedicalKbItems"');
-    
+    expandByID('#pmHx');
+    await wait();
+  
+    // STEP 3: Extract all available titles from a scrollable div within a parent element (argument = tagName of parent element)
+    const availableTitles = extractTitlesFromScrollable('chart-medical-hx', '300px');
+
     // STEP 4: Click PMH problems by Title (only if they exist in the list), otherwise free type the condition(s)
     const conditionsToSelect = ['Negative', 'Diverticulosis', 'Diabetes Type II', 'broken heart'];
     
@@ -38,15 +40,18 @@ chrome.runtime.onMessage.addListener(async (msg) => {
         console.log(`SightFlow: "${condition}" is NOT available in the list, free-texting it...`);
         
         // First need to click on the specific medical history Add button 
-        clickButtonByParentAndTitle('icp-add-button', 'attr.data-qa="medicalHxControllAddButton"', 'Add');
-        
-        // Try to find the free text input field
-        const textInput = findTextInputByAttribute('attr.data-qa="medicalHxControlUpdateMedicalText"');
+        clickAddButtonWithinSection('chart-medical-hx');
+
+        // Try to find the free text input field, use an attribute argument)
+        const textInput = findInputBox('chart-medical-hx');
         
         if (textInput) {
+          console.log('SightFlow:clicking...');
           textInput.click();
+          console.log("SightFlow: Clicked input box within section. Free typing...");
           // Type the condition using setAngularValue
           setAngularValue(textInput, condition);
+          console.log("SightFlow: Text inserted into input box and event dispatched.");
         } else {
           console.log(`SightFlow: Could not find the input field for "${condition}"`);
         }

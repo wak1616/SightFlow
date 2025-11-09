@@ -9,7 +9,7 @@
  * @param {number} ms - Milliseconds to wait (defaults to 150ms)
  * @returns {Promise} Promise that resolves after the specified delay
  */
-async function wait(ms = 150) {
+async function wait(ms = 500) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -26,39 +26,11 @@ function clickTextAreaWithinSection(section){
   }
 }
 
-/**
- * Gets patient context from the page (name and DOB)
- * @returns {Object} Object containing patient name and dob
- */
+
 function getContext() {
-  const name = document.querySelector('[data-test="patient-name"], .patient-name')?.textContent?.trim();
-  
-  // Find DOB by looking for the "DOB" label element and searching within its parent container
-  let dob = null;
-  const allLabels = document.querySelectorAll('label');
-  const dobLabel = Array.from(allLabels).find(el => {
-    const text = el.textContent?.trim();
-    return text === 'DOB';
-  });
-  
-  if (dobLabel && dobLabel.parentElement) {
-    // Search within the parent container of the DOB label
-    const container = dobLabel.parentElement;
-    // Look for the DOB value in the next sibling or parent's next sibling
-    let candidate = dobLabel.nextElementSibling;
-    if (candidate) {
-      dob = candidate.textContent?.trim();
-    } else {
-      candidate = container.nextElementSibling;
-      if (candidate) {
-        dob = candidate.textContent?.trim();
-      }
-    }
-  }
-  
-  const context = { name, dob };
-  console.log('SightFlow: Patient context:', context);
-  return context;
+  const patientContext = document.title?.trim() || null;
+  console.log('SightFlow: Patient context:', patientContext);
+  return patientContext;
 }
 
 /**
@@ -78,7 +50,8 @@ function setAngularValue(el, text) {
   setter.call(el, text);
   
   // Dispatch input event so Angular detects the change
-  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new InputEvent('input', { bubbles: true }));
+  el.dispatchEvent(new InputEvent('change', { bubbles: true }));
 }
 
 /**
@@ -94,7 +67,7 @@ async function expandByID(sectionId) {
   }
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   el.click();
-  await wait(1000);
+  await wait();
   return true;
 }
 
@@ -180,140 +153,55 @@ function checkCheckboxByLabel(labelText) {
   return false;
 }
 
-/**
- * Clicks a button with a specific title inside a parent element that has a specific attribute
- * Note: Angular binds attributes as attr.data-qa, not data-qa, so we need to check the attribute directly
- * @param {string} parentElement - The parent element selector (e.g., 'icp-add-button')
- * @param {string} attrString - The full attribute specification (e.g., 'attr.data-qa="medicalHxControllAddButton"')
- * @param {string} childButtonTitle - The title attribute of the button to click (e.g., "Add")
- * @returns {boolean} True if successful, false if element not found
- */
-function clickButtonByParentAndTitle(parentElement, attrString, childButtonTitle) {
-  // Parse the attribute string to extract attribute name and value
-  // Expected format: 'attr.data-qa="medicalHxControllAddButton"'
-  const match = attrString.match(/^([^=]+)="([^"]+)"$/);
-  if (!match) {
-    console.log(`SightFlow: Invalid attribute string format: "${attrString}". Expected format: 'attr.name="value"'`);
+function clickAddButtonWithinSection(section) {
+  const addButton = document.querySelector(`${section} button`);
+  if (addButton) {
+    addButton.click();
+    console.log(`SightFlow: Clicked add button within section "${section}"`);
+    return true;
+  }
+  else {
+    console.log(`SightFlow: Could not find add button within section "${section}"`);
     return false;
   }
-  
-  const attrName = match[1].trim();
-  const attrValue = match[2];
-  
-  // Find all parent elements and check for the specified attribute
-  const allParents = document.querySelectorAll(parentElement);
-  console.log(`SightFlow: Found ${allParents.length} ${parentElement} elements`);
-  
-  for (let i = 0; i < allParents.length; i++) {
-    const container = allParents[i];
-    // Check for the specified attribute
-    const attr = container.getAttribute(attrName);
-    
-    if (attr === attrValue) {
-      // Found the right container, now find the button inside
-      const button = container.querySelector(`button[title="${childButtonTitle}"]`);
-      if (button) {
-        button.click();
-        console.log(`SightFlow: Clicked button with title="${childButtonTitle}" (parent has ${attrName}="${attrValue}")`);
-        return true;
-      } else {
-        console.log(`SightFlow: Found correct ${parentElement} but no button[title="${childButtonTitle}"] inside`);
-      }
-    }
-  }
-  
-  console.log(`SightFlow: Could not find button with title="${childButtonTitle}" in ${parentElement}[${attrName}="${attrValue}"]`);
-  return false;
 }
 
-/**
- * Finds a text input element by a specific attribute
- * Note: Angular binds attributes as attr.data-qa, not data-qa, so we need to check the attribute directly
- * @param {string} attrString - The full attribute specification (e.g., 'attr.data-qa="medicalHxControlUpdateMedicalText"')
- * @returns {HTMLElement|null} The matching input element, or null if not found
- */
-function findTextInputByAttribute(attrString) {
-  // Parse the attribute string to extract attribute name and value
-  // Expected format: 'attr.data-qa="medicalHxControlUpdateMedicalText"'
-  const match = attrString.match(/^([^=]+)="([^"]+)"$/);
-  if (!match) {
-    console.log(`SightFlow: Invalid attribute string format: "${attrString}". Expected format: 'attr.name="value"'`);
+//Find inputbox using attrstring.
+function findInputBox(section) {
+  const sectionElement = document.querySelector(section);
+  const inputBox = sectionElement.querySelector("div input");
+  if (inputBox) {
+    console.log("SightFlow: Found input box within section");
+    return inputBox;
+  }
+  else {
+    console.log("Sightflow: Found NO input box within section");
     return null;
   }
-  
-  const attrName = match[1].trim();
-  const attrValue = match[2];
-  
-  // Find all input[type="text"] elements
-  const allInputs = document.querySelectorAll('input[type="text"]');
-  console.log(`SightFlow: Found ${allInputs.length} input[type="text"] elements`);
-  
-  for (let i = 0; i < allInputs.length; i++) {
-    const input = allInputs[i];
-    // Check for the specified attribute
-    const attr = input.getAttribute(attrName);
-    
-    if (attr === attrValue) {
-      console.log(`SightFlow: Found text input (${i}) with ${attrName}="${attrValue}"`);
-      return input;
-    }
-  }
-  
-  console.log(`SightFlow: Could not find text input with ${attrName}="${attrValue}"`);
-  return null;
 }
 
-/**
- * Extracts all title attribute values from divs within a scrollable div
- * Finds the scrollable div by checking if its first child div has a specific attribute
- * Note: Angular binds attributes as attr.data-qa, not data-qa, so we need to check the attribute directly
- * @param {string} attrString - The full attribute specification for the first child div (e.g., 'attr.data-qa="medicalHxControlMedicalKbItems"')
- * @returns {Array<string>} Array of title values, or empty array if not found
- */
-function extractTitlesFromScrollable(attrString) {
-  // Parse the attribute string to extract attribute name and value
-  // Expected format: 'attr.data-qa="medicalHxControlMedicalKbItems"'
-  const match = attrString.match(/^([^=]+)="([^"]+)"$/);
-  if (!match) {
-    console.log(`SightFlow: Invalid attribute string format: "${attrString}". Expected format: 'attr.name="value"'`);
-    return [];
-  }
+//Start with parent element, then find scrollable list and extrat titles from there.
+function extractTitlesFromScrollable(parentTagNameString, yPixels) {
+  // Find all scrollable divs within parent, then filter by height
+  const scrollableDivs = document.querySelectorAll(`${parentTagNameString} div.scrollable`);
   
-  const attrName = match[1].trim();
-  const attrValue = match[2];
-  
-  // Find all divs with class "scrollable"
-  const allScrollableDivs = document.querySelectorAll('div.scrollable');
-  console.log(`SightFlow: Found ${allScrollableDivs.length} divs with class "scrollable"`);
-  
-  // Find the correct scrollable div by checking if the first child has the specified attribute
-  let correctScrollableDiv = null;
-  for (let i = 0; i < allScrollableDivs.length; i++) {
-    const scrollableDiv = allScrollableDivs[i];
-    const firstChild = scrollableDiv.firstElementChild;
-    
-    // Check if the first child is a div with the specified attribute
-    if (firstChild && firstChild.tagName.toLowerCase() === 'div') {
-      const attr = firstChild.getAttribute(attrName);
-      
-      if (attr === attrValue) {
-        correctScrollableDiv = scrollableDiv;
-        console.log(`SightFlow: Found correct scrollable div at index ${i} with first child having ${attrName}="${attrValue}"`);
-        break;
-      }
+  let parentDiv = null;
+  for (const div of scrollableDivs) {
+    // Check if style attribute contains the exact height specification
+    const styleAttr = div.getAttribute('style');
+    if (styleAttr && styleAttr.includes(`height: ${yPixels}`)) {
+      parentDiv = div;
+      break;
     }
   }
   
-  if (!correctScrollableDiv) {
-    console.log(`SightFlow: Could not find scrollable div with first child having ${attrName}="${attrValue}"`);
+  if (!parentDiv) {
+    console.log(`SightFlow: Could not find scrollable div with height ${yPixels}px within ${parentTagNameString}`);
     return [];
   }
   
-  // Extract all titles from child divs within the correct scrollable div
-  const titledDivs = correctScrollableDiv.querySelectorAll('div[title]');
-  const titles = Array.from(titledDivs).map(d => d.getAttribute('title'));
-  console.log(`SightFlow: Extracted ${titles.length} titles from the correct scrollable div`);
+  const elements = parentDiv.querySelectorAll('div[title]');
+  console.log(`SightFlow: Extracted ${elements.length} titles from scrollable div`);
+  const titles = Array.from(elements).map(element => element.getAttribute('title'));
   return titles;
 }
-
-
