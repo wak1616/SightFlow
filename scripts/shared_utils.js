@@ -13,23 +13,17 @@ async function wait(ms = 150) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/**
- * Finds a visible mat input TEXT area
- * @returns {HTMLElement|null} The textarea element or null if not found
- */
-function findMatInputArea() {
-  const allElements = document.querySelectorAll('textarea[matinput].editable-textarea');
-  // Loop through all matching textareas and return the first visible one
-  for (let i = 0; i < allElements.length; i++) {
-    const el = allElements[i];
-    const bounds = el.getBoundingClientRect();
-    console.log(`Element ${i}: w=${bounds.width}, h=${bounds.height}, visible=${bounds.width > 0 && bounds.height > 0}`, el);
-    // Check if element has actual dimensions (is visible)
-    if (bounds.width > 0 && bounds.height > 0) {
-      return el;
-    }
+// Function to click on a textarea for subsequent freetyping
+function clickTextAreaWithinSection(section){
+  const sectionElement = document.querySelector(section);
+  const textArea = sectionElement.querySelector('textarea[matinput].editable-textarea');
+  if (textArea) {
+    textArea.click();
+    return textArea;
+  } else {
+    console.log(`SightFlow: Could not find text area within section "${section}"`);
+    return null;
   }
-  return null;
 }
 
 /**
@@ -134,28 +128,18 @@ function clickElementByTitle(titleText) {
   return true;
 }
 
-/**
- * Generic helper to find and click a VISIBLE element by title attribute
- * Useful when there may be multiple elements (some hidden) with the same title in the DOM
- * @param {string} titleText - The title attribute value to search for
- * @returns {boolean} True if successful, false if element not found
- */
-function clickVisibleElementByTitle(titleText) {
-  const allDivs = document.querySelectorAll('div[title]');
-  for (let i = 0; i < allDivs.length; i++) {
-    const div = allDivs[i];
-    if (div.getAttribute('title') === titleText) {
-      // Check if visible (in case there are multiple matches, we want the visible one)
-      const bounds = div.getBoundingClientRect();
-      if (bounds.width > 0 && bounds.height > 0) {
-        div.click();
-        console.log(`SightFlow: Clicked element with title="${titleText}"`);
-        return true;
-      }
+// Function  to be able to select "OU" from CC/HPI screen (parentElement should be easilty identifiable)
+function clickLocationInScrollable(location) {
+  const scrollableDivs = document.querySelectorAll('div[class="scrollable"]');
+  for (let i = 0; i < scrollableDivs.length; i++) {
+    const div = scrollableDivs[i];
+    // Look for a child div with the specified title (1-2 layers down)
+    const targetChild = div.querySelector(`div[title="${location}"]`);
+    if (targetChild) {
+      targetChild.click();
+      return; // stop after finding the first match
     }
   }
-  console.log(`SightFlow: Could not find visible element with title="${titleText}"`);
-  return false;
 }
 
 /**

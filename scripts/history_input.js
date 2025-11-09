@@ -14,7 +14,7 @@ chrome.runtime.onMessage.addListener(async (msg) => {
     // Step 2: Expand the HPI section
     expandByID('#hpiCC');
     
-    await wait();
+    await wait(1000);
 
     // Step 3: Click CC
     clickElementByTitle('CC');
@@ -23,11 +23,10 @@ chrome.runtime.onMessage.addListener(async (msg) => {
     clickElementByTitle('Blurred Vision');
     
     // Step 5: Click the eye(s)/location
-    clickVisibleElementByTitle('OU');
+    clickLocationInScrollable('OU');
     
     // Step 6: Find and add to the mat-input-xx text area (might be a different element after expansion)
-    extendedhpi_textarea = findMatInputArea();
-    extendedhpi_textarea.click();
+    extendedhpi_textarea = clickTextAreaWithinSection('chart-hpi');
     setAngularValue(extendedhpi_textarea, msg.extendedhpi_text);
     console.log('SightFlow: Text inserted into Extended HPI');
 
