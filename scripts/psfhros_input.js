@@ -17,9 +17,7 @@ chrome.runtime.onMessage.addListener(async (msg) => {
     collapse();
     
     // STEP 2: Expand the PSFHROS section
-    expandByID('#pmHx');
-    
-    await wait();
+    await expandByID('#pmHx');
     
     // STEP 3: Extract all available titles from the scrollable div (the argument comes from a single child div of the parent div that has class="scrollable")
     const availableTitles = extractTitlesFromScrollable('attr.data-qa="medicalHxControlMedicalKbItems"');
@@ -41,19 +39,16 @@ chrome.runtime.onMessage.addListener(async (msg) => {
         
         // First need to click on the specific medical history Add button 
         clickButtonByParentAndTitle('icp-add-button', 'attr.data-qa="medicalHxControllAddButton"', 'Add');
-        await wait(100); // Wait for the Add UI to appear
         
         // Try to find the free text input field
         const textInput = findTextInputByAttribute('attr.data-qa="medicalHxControlUpdateMedicalText"');
         
         if (textInput) {
           textInput.click();
-          await wait(100); // Small delay to ensure the field is focused
           // Type the condition using setAngularValue
           setAngularValue(textInput, condition);
-          await wait(100); // Small delay after typing
         } else {
-          console.log(`SightFlow: Could not find free text input field for "${condition}"`);
+          console.log(`SightFlow: Could not find the input field for "${condition}"`);
         }
       }
     }

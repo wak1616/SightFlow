@@ -12,9 +12,7 @@ chrome.runtime.onMessage.addListener(async (msg) => {
     collapse();
 
     // Step 2: Expand the HPI section
-    expandByID('#hpiCC');
-    
-    await wait(1000);
+    await expandByID('#hpiCC');
 
     // Step 3: Click CC
     clickElementByTitle('CC');

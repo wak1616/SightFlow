@@ -67,8 +67,10 @@ function getContext() {
  * @param {string} text - The text to insert
  */
 function setAngularValue(el, text) {
-  // Determine if it's a textarea or input element
-  const isTextarea = el.tagName.toLowerCase() === 'textarea';
+  // the following DOESN'T work with Angular: element.value = "some text";
+  // Checks if the element is a <textarea> or <input>, 
+  // then gets the appropriate native browser prototype.
+  const isTextarea = el.tagName.toLowerCase() === 'textarea'; //tagName always comes out uppercase, so we need to convert to lowercase
   const prototype = isTextarea ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
   
   // Use the native value setter to bypass Angular's change detection initially
@@ -82,9 +84,9 @@ function setAngularValue(el, text) {
 /**
  * Expands a section by clicking on the specified element ID
  * @param {string} sectionId - The ID selector (e.g., '#hpiCC')
- * @returns {boolean} True if successful, false if element not found
+ * @returns {Promise<boolean>} True if successful, false if element not found
  */
-function expandByID(sectionId) {
+async function expandByID(sectionId) {
   const el = document.querySelector(sectionId);
   if (!el) {
     console.log(`SightFlow: Could not find element with selector "${sectionId}"`);
@@ -92,6 +94,7 @@ function expandByID(sectionId) {
   }
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   el.click();
+  await wait(1000);
   return true;
 }
 
@@ -131,8 +134,7 @@ function clickElementByTitle(titleText) {
 // Function  to be able to select "OU" from CC/HPI screen (parentElement should be easilty identifiable)
 function clickLocationInScrollable(location) {
   const scrollableDivs = document.querySelectorAll('div[class="scrollable"]');
-  for (let i = 0; i < scrollableDivs.length; i++) {
-    const div = scrollableDivs[i];
+  for (const div of scrollableDivs) {
     // Look for a child div with the specified title (1-2 layers down)
     const targetChild = div.querySelector(`div[title="${location}"]`);
     if (targetChild) {
@@ -151,8 +153,7 @@ function checkCheckboxByLabel(labelText) {
   // Find all mat-checkbox elements
   const allCheckboxes = document.querySelectorAll('mat-checkbox');
   
-  for (let i = 0; i < allCheckboxes.length; i++) {
-    const matCheckbox = allCheckboxes[i];
+  for (const matCheckbox of allCheckboxes) {
     // Check if this checkbox's label contains the text we're looking for (case-insensitive)
     if (matCheckbox.textContent.trim().toLowerCase().includes(labelText.trim().toLowerCase())) {
       // Find the actual input element inside
