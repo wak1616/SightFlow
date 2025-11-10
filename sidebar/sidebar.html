@@ -6,55 +6,71 @@
   <title>SightFlow Controls</title>
   <link rel="stylesheet" href="sidebar.css">
 </head>
-<body>
-  <div class="sidebar-container">
-    <!-- Logo Section -->
-    <div class="logo-section">
-      <img src="../images/icon-128.png" alt="SightFlow Logo" class="logo">
-    </div>
-
-    <!-- Divider -->
-    <div class="divider"></div>
-
-    <!-- Controls Section -->
-    <div class="controls-section">
-      <h2 class="section-title">Quick Actions</h2>
-      
-      <!-- HPI Button -->
-      <button id="hpi-button" class="action-button hpi-button">
-        <div class="button-content">
-          <div class="button-icon">📝</div>
-          <div class="button-text">
-            <div class="button-title">Insert HPI</div>
-            <div class="button-shortcut">Alt+Shift+H</div>
+  <body>
+    <div class="sidebar-container">
+      <header class="app-header">
+        <div class="app-branding">
+          <img src="../images/icon-128.png" alt="SightFlow Logo" class="logo">
+          <div class="brand-copy">
+            <h1 class="app-title">SightFlow</h1>
+            <p class="app-subtitle">AI Charting Assistant</p>
           </div>
         </div>
-      </button>
+        <div class="version-chip">v0.1.0</div>
+      </header>
 
-      <!-- PSFHROS Button -->
-      <button id="psfhros-button" class="action-button psfhros-button">
-        <div class="button-content">
-          <div class="button-icon">🔍</div>
-          <div class="button-text">
-            <div class="button-title">Select PMH</div>
-            <div class="button-shortcut">Alt+Shift+M</div>
+      <main class="sidebar-main">
+        <section class="card capture-card">
+          <div class="card-header">
+            <h2 class="card-title">Capture Notes</h2>
+            <div class="card-subtitle">Dictate or type chart notes, then review and send to AI.</div>
           </div>
-        </div>
-      </button>
+          <div class="capture-controls">
+            <button id="listen-button" class="button listen-button" type="button">
+              <span class="button-icon" aria-hidden="true">🎙️</span>
+              <span class="button-label">Listen</span>
+            </button>
+            <div id="listen-indicator" class="listen-indicator" hidden>
+              <span class="pulse-dot"></span>
+              <span>Listening…</span>
+            </div>
+          </div>
+          <label for="transcript-input" class="sr-only">Captured text</label>
+          <textarea id="transcript-input" class="transcript-input" placeholder="Start speaking or type here…" rows="8"></textarea>
+          <div class="capture-footer">
+            <div class="context-controls">
+              <label class="field-label" for="patient-alias-input">De-ID Chart #</label>
+              <input id="patient-alias-input" class="text-input" type="text" placeholder="e.g. SF-1024">
+            </div>
+            <button id="send-to-ai-button" class="button primary" type="button" disabled>Send to AI</button>
+          </div>
+        </section>
+
+        <section class="card sections-card">
+          <div class="card-header">
+            <h2 class="card-title">Chart Sections</h2>
+            <div class="card-subtitle">Pending sections glow green until you approve changes.</div>
+          </div>
+          <ul id="section-list" class="section-list"></ul>
+          <div class="section-hint">Quick keys: History (Alt+Shift+H), PSFH/ROS (Alt+Shift+M). Others coming soon.</div>
+        </section>
+
+        <section id="plan-card" class="card plan-card" hidden>
+          <div class="card-header">
+            <h2 class="card-title">AI Plan Preview</h2>
+            <div class="card-subtitle">Review proposed updates before sending to Nextech.</div>
+          </div>
+          <div id="plan-content" class="plan-content"></div>
+        </section>
+      </main>
+
+      <footer class="sidebar-footer">
+        <div id="status-message" class="status-message" role="status" aria-live="polite"></div>
+        <button id="send-to-nextech-button" class="button accent wide" type="button" disabled>Send to Nextech</button>
+      </footer>
     </div>
 
-    <!-- Status Section -->
-    <div class="status-section">
-      <div id="status-message" class="status-message"></div>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-      <p class="version">v0.1.0</p>
-    </div>
-  </div>
-
-  <script src="sidebar.js"></script>
-</body>
+    <script src="sidebar.js"></script>
+  </body>
 </html>
 

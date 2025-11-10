@@ -1,73 +1,74 @@
 # SightFlow Nextech Helper
 
-A Chrome extension that helps streamline workflow in Intellechart by providing keyboard shortcuts and a convenient sidebar to insert text into HPI (History of Present Illness) fields and select PMH elements.
+A Chrome MV3 extension that streamlines Nextech charting by pairing quick keyboard triggers with an LLM-assisted sidebar co-pilot for History and PMHx data entry.
 
-## Features
+## Key Features
 
-- **Sidebar Interface**: Beautiful side panel with buttons for quick actions
-- **Keyboard Shortcuts**: 
-  - Press `Alt+Shift+H` to insert text into the Extended HPI textarea
-  - Press `Alt+Shift+M` to select PMH (Past Medical History) elements
-- **Smart Field Detection**: Automatically finds and expands the HPI section if needed
-- **Patient Context Awareness**: Gathers patient context for processing
-- **Angular-Compatible**: Properly triggers change detection for Angular-based forms
-- **Modern UI**: Aesthetically pleasing interface with the SightFlow logo
+- **AI Assistant Sidebar**: Dictate or free-type patient narratives, generate an AI plan, and preview section-specific automation before approval.
+- **Speech Capture**: One-click microphone capture (Web Speech API) with visual feedback; auto-saves draft transcripts locally.
+- **Section Awareness**: Tracks History, PSFH/ROS, V & P, Exam, Imp/Plan, and Follow Up sections, highlighting pending updates that the AI proposes.
+- **Pluggable LLM Planner**: Ships with deterministic heuristics and supports remote OpenAI planning once an API key is stored via `chrome.storage`.
+- **Chart Execution Pipeline**: “Send to Nextech” replays approved commands through existing content scripts (e.g., `sf-insert-hpi`, `sf-insert-psfhros`).
+- **Keyboard Shortcuts**: Continue using `Alt+Shift+H` and `Alt+Shift+M` for quick History/PMHx updates while the assistant evolves.
 
 ## Installation
 
-1. Clone this repository or download the files
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" in the top-right corner
-4. Click "Load unpacked" and select the extension directory
-5. The extension should now be active on Intellechart pages
+1. Clone or download this repository.
+2. Open Chrome and navigate to `chrome://extensions/`.
+3. Enable **Developer mode** in the top-right corner.
+4. Click **Load unpacked** and select the project root.
+5. Open a patient chart at `https://app1.intellechart.net/*` and launch the SightFlow side panel.
 
-## Usage
+## Using the Assistant Sidebar
 
-### Using the Sidebar (Recommended)
+1. Click **Listen** to dictate (or type directly into the transcript area). Draft text is persisted locally.
+2. (Optional) Enter a de-identified chart number. This value is sent to the planner instead of PHI.
+3. Press **Send to AI**. The background worker either:
+   - Calls OpenAI (if an API key is configured), or
+   - Falls back to local heuristics for common phrases (e.g., Diverticulosis → PSFH/ROS).
+4. Review the generated plan. Sections with pending updates glow green.
+5. Click **Send to Nextech** to run the queued commands inside the live chart.
 
-1. Navigate to a patient chart in Intellechart (https://app1.intellechart.net/*)
-2. Click the SightFlow extension icon and open the side panel
-3. Use the action buttons:
-   - **Insert HPI** button - Inserts HPI text (equivalent to Alt+Shift+H)
-   - **Select PMH** button - Selects PMH elements (equivalent to Alt+Shift+M)
-4. Status messages will appear to confirm the action
+## Configuring the LLM + Speech Stack
 
-### Using Keyboard Shortcuts
+The extension defaults to Chrome’s built-in Web Speech API for transcription and a heuristic planner. To enable full LLM planning and server-grade transcription:
 
-1. Navigate to a patient chart in Intellechart (https://app1.intellechart.net/*)
-2. Press `Alt+Shift+H` to trigger the HPI insertion
-3. Press `Alt+Shift+M` to trigger the PMH selection
-4. The actions will execute automatically
+1. Acquire an OpenAI API key with access to:
+   - `gpt-4o-mini` (planning)
+   - `gpt-4o-mini-transcribe` (speech-to-text, optional)
+2. Open the DevTools console for the sidebar (`chrome://extensions`, “Inspect views”).
+3. Store secrets in `chrome.storage.local`:
+   ```js
+   chrome.storage.local.set({
+     openAiApiKey: 'sk-...',
+     openAiModel: 'gpt-4o-mini'
+   });
+   ```
+4. (Optional) Add a custom system prompt via `plannerSystemPrompt` to fine-tune command selection.
 
-## Files
+> **HIPAA Note**: The assistant sends only de-identified chart aliases plus the free-text transcript. Mapping between real PHI and the alias should remain on the clinician’s local system.
 
-- `manifest.json` - Extension configuration and permissions
-- `background.js` - Background service worker handling keyboard shortcuts and sidebar messages
-- `scripts/history_input.js` - Content script for HPI insertion
-- `scripts/psfhros_input.js` - Content script for PMH selection
-- `scripts/shared_utils.js` - Shared utility functions
-- `sidebar/sidebar.html` - Sidebar interface
-- `sidebar/sidebar.css` - Sidebar styling
-- `sidebar/sidebar.js` - Sidebar functionality
+## Modifying/Extending Automations
 
-## Customization
+- Update `background.js` → `SUPPORTED_COMMANDS` and `SECTION_IDS` when new sections or commands go live.
+- Extend `scripts/history_input.js` or `scripts/psfhros_input.js` to accept richer payloads (e.g., medications, ROS details).
+- Enhance heuristics in `buildHeuristicPlan` to cover more conditions while testing without LLM calls.
+- Add new content scripts for V & P, Exam, etc., and emit matching planner actions.
 
-To change the text being inserted, edit the `text` property in the `chrome.tabs.sendMessage` call in `background.js` (line 13).
+## File Overview
 
-## Permissions
+- `manifest.json` – Extension definition, permissions (`activeTab`, `commands`, `sidePanel`, `storage`, OpenAI host access).
+- `background.js` – Service worker orchestrating keyboard shortcuts, AI planning, and action execution.
+- `scripts/shared_utils.js` – DOM helpers shared across content scripts.
+- `scripts/history_input.js` – Executes `sf-insert-hpi`.
+- `scripts/psfhros_input.js` – Executes `sf-insert-psfhros` with dynamic condition lists.
+- `sidebar/sidebar.html|css|js` – Assistant UI, state management, speech, and messaging.
+- `SIDEBAR_USAGE.md` – Supplemental usage notes for the side panel (if present).
 
-- `scripting` - Required to inject content scripts
-- `activeTab` - Access to the currently active tab
-- `storage` - For potential future features requiring data storage
-- `host_permissions` - Limited to `app1.intellechart.net` domain
+## Development Tips
 
-## Development
-
-This extension uses Manifest V3 and is compatible with modern Chrome/Chromium browsers.
-
-## Version
-
-Current version: 0.1.0
+- The side panel stores drafts in `chrome.storage.local` under `sfAssistantDraft`.
+- Toggle heuristics vs. OpenAI by simply adding/removing the API key in storage—no reload needed.
+- Use the Chrome DevTools console (`chrome://extensions` → Inspect views → `sidebar.html`) to inspect assistant state.
 
 ## License
-

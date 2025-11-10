@@ -5,61 +5,59 @@
 
 // ==================== MESSAGE LISTENER ====================
 
-chrome.runtime.onMessage.addListener(async (msg) => {
-  console.log('SightFlow PSFHROS: Message received in content script', msg);
-  
-  if (msg?.type === 'INSERT_PSFHROS') {
-    console.log('SightFlow PSFHROS: Processing INSERT_PSFHROS command');
-    
-    //***Get patient context 
-    const ctx = getContext();
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg?.type) return;
 
-    // STEP 1: Make sure relevant section is collapsed before starting
-    collapse();
-    
-    // STEP 2: Expand the PSFHROS section
-    expandByID('#pmHx');
-    await wait();
-  
-    // STEP 3: Extract all available titles from a scrollable div within a parent element (argument = tagName of parent element)
-    const availableTitles = extractTitlesFromScrollable('chart-medical-hx', '300px');
+  if (msg.type === 'INSERT_PSFHROS') {
+    (async () => {
+      console.log('SightFlow PSFHROS: Processing INSERT_PSFHROS command', msg);
 
-    // STEP 4: Click PMH problems by Title (only if they exist in the list), otherwise free type the condition(s)
-    const conditionsToSelect = ['Negative', 'Diverticulosis', 'Diabetes Type II', 'broken heart'];
-    
-    for (const condition of conditionsToSelect) {
-      // Search for the condition, ignoring leading/trailing whitespace
-      const matchedTitle = availableTitles.find(title => 
-        title.trim().toLowerCase() === condition.trim().toLowerCase()
-      );
-      
-      if (matchedTitle) {
-        console.log(`SightFlow: "${condition}" found as "${matchedTitle}", clicking...`);
-        clickElementByTitle(matchedTitle); // Use the original title with whitespace
-      } else {
-        console.log(`SightFlow: "${condition}" is NOT available in the list, free-texting it...`);
-        
-        // First need to click on the specific medical history Add button 
-        clickAddButtonWithinSection('chart-medical-hx');
+      const conditionsToSelect = Array.isArray(msg.conditionsToSelect) ? msg.conditionsToSelect : [];
+      const freeTextEntries = Array.isArray(msg.freeTextEntries) ? msg.freeTextEntries : [];
 
-        // Try to find the free text input field, use an attribute argument)
-        const textInput = findInputBox('chart-medical-hx');
-        
-        if (textInput) {
-          console.log('SightFlow:clicking...');
-          textInput.click();
-          console.log("SightFlow: Clicked input box within section. Free typing...");
-          // Type the condition using setAngularValue
-          setAngularValue(textInput, condition);
-          console.log("SightFlow: Text inserted into input box and event dispatched.");
+      collapse();
+      await expandByID('#pmHx');
+      await wait();
+
+      const availableTitles = extractTitlesFromScrollable('chart-medical-hx', '300px');
+
+      for (const condition of conditionsToSelect) {
+        const matchedTitle = availableTitles.find((title) => title.trim().toLowerCase() === condition.trim().toLowerCase());
+        if (matchedTitle) {
+          console.log(`SightFlow: Selecting existing condition "${matchedTitle}"`);
+          clickElementByTitle(matchedTitle);
         } else {
-          console.log(`SightFlow: Could not find the input field for "${condition}"`);
+          console.log(`SightFlow: Condition "${condition}" not found, freetyping.`);
+          await freeTypeCondition(condition);
         }
       }
-    }
 
-    // STEP 5: collapse to save
-    collapse();
+      for (const customEntry of freeTextEntries) {
+        if (customEntry && typeof customEntry === 'string') {
+          await freeTypeCondition(customEntry);
+        }
+      }
+
+      collapse();
+      sendResponse({ success: true });
+    })().catch((error) => {
+      console.error('SightFlow PSFHROS: Failed to process INSERT_PSFHROS', error);
+      sendResponse({ success: false, error: error.message });
+    });
+
+    return true;
   }
 });
 
+async function freeTypeCondition(condition) {
+  clickAddButtonWithinSection('chart-medical-hx');
+  await wait(200);
+  const textInput = findInputBox('chart-medical-hx');
+  if (textInput) {
+    textInput.click();
+    setAngularValue(textInput, condition);
+    console.log(`SightFlow: Freely typed "${condition}" into PMHx input.`);
+  } else {
+    console.log(`SightFlow: Unable to locate free-text input for "${condition}"`);
+  }
+}
