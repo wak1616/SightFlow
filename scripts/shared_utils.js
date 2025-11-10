@@ -205,3 +205,14 @@ function extractTitlesFromScrollable(parentTagNameString, yPixels) {
   const titles = Array.from(elements).map(element => element.getAttribute('title'));
   return titles;
 }
+
+// ==================== MESSAGE BRIDGE ====================
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.type === 'REQUEST_PATIENT_CONTEXT') {
+    const context = getContext();
+    sendResponse({ context });
+    return true;
+  }
+  return undefined;
+});

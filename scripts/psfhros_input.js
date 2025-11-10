@@ -5,7 +5,13 @@
 
 // ==================== MESSAGE LISTENER ====================
 
-chrome.runtime.onMessage.addListener(async (msg) => {
+const DEFAULT_PSFHROS_CONFIG = {
+  conditionsToSelect: [],
+  freeTextEntries: [],
+  removeConditions: []
+};
+
+chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
   console.log('SightFlow PSFHROS: Message received in content script', msg);
   
   if (msg?.type === 'INSERT_PSFHROS') {
@@ -24,8 +30,19 @@ chrome.runtime.onMessage.addListener(async (msg) => {
     // STEP 3: Extract all available titles from a scrollable div within a parent element (argument = tagName of parent element)
     const availableTitles = extractTitlesFromScrollable('chart-medical-hx', '300px');
 
-    // STEP 4: Click PMH problems by Title (only if they exist in the list), otherwise free type the condition(s)
-    const conditionsToSelect = ['Negative', 'Diverticulosis', 'Diabetes Type II', 'broken heart'];
+    const payload = msg.payload || {};
+    const config = {
+      ...DEFAULT_PSFHROS_CONFIG,
+      ...payload
+    };
+
+    const conditionsToSelect = Array.isArray(config.conditionsToSelect)
+      ? config.conditionsToSelect
+      : [];
+    
+    const freeTextEntries = Array.isArray(config.freeTextEntries)
+      ? config.freeTextEntries
+      : (msg.psfhros_text ? [msg.psfhros_text] : []);
     
     for (const condition of conditionsToSelect) {
       // Search for the condition, ignoring leading/trailing whitespace
@@ -58,8 +75,27 @@ chrome.runtime.onMessage.addListener(async (msg) => {
       }
     }
 
+    for (const entry of freeTextEntries) {
+      if (!entry) continue;
+      console.log(`SightFlow: Free-typing additional condition "${entry}"`);
+      
+      clickAddButtonWithinSection('chart-medical-hx');
+      const textInput = findInputBox('chart-medical-hx');
+      if (textInput) {
+        textInput.click();
+        setAngularValue(textInput, entry);
+        console.log('SightFlow: Added free text entry via Angular setter.');
+        await wait(200);
+      } else {
+        console.log('SightFlow: Could not locate input for free text entry');
+      }
+    }
+
     // STEP 5: collapse to save
     collapse();
+
+    sendResponse?.({ success: true });
+    return true;
   }
 });
 

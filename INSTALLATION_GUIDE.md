@@ -25,97 +25,89 @@ Since you've added new files (sidebar), you need to reload the extension:
 1. Simply click the SightFlow icon
 2. The sidebar may open automatically depending on your Chrome settings
 
-## 🎨 Sidebar Features
+## 🎨 Sidebar Highlights (v0.1.0)
 
-The sidebar includes:
-- **SightFlow Logo** (128x128 icon) at the top
-- **Gradient Header** with app name and subtitle
-- **Two Action Buttons**:
-  - 📝 Insert HPI (Alt+Shift+H)
-  - 🔍 Select PMH (Alt+Shift+M)
-- **Status Messages** showing success/error feedback
-- **Version Number** at the bottom (v0.1.0)
+- Gradient header with logo + subtitle
+- **AI Documentation Assistant** card with dictation, narrative input, AI buttons, and a plan overview
+- **Quick Actions** for the existing HPI / PMH hotkeys
+- **AI Settings** for provider, API key, model, and temperature
+- Status banner plus footer version label
 
 ## 🧪 Testing the Sidebar
 
-### Test 1: Visual Appearance
+### Test 1 – Visual Check
 - [ ] Sidebar opens without errors
-- [ ] Logo displays correctly
-- [ ] Both buttons are visible and styled properly
-- [ ] Gradient header looks good
-- [ ] Text is readable
+- [ ] AI Assistant, Plan Overview, Quick Actions, and Settings all render
+- [ ] `Send to AI` is disabled until text is entered
+- [ ] `Send to Nextech` is disabled until a plan exists
 
-### Test 2: Button Functionality (Basic)
-1. Open the sidebar on ANY page
-2. Click the "Insert HPI" button
-3. You should see either:
-   - ❌ Error: "Please navigate to Intellechart first" (if not on Intellechart)
-   - ✅ Success: "HPI insertion triggered!" (if on Intellechart)
+### Test 2 – Dictation & Transcript
+1. Click **Start Listening** (allow microphone access if prompted).
+2. Speak a short sentence; the transcript should appear in the narrative box.
+3. Click **Stop Listening**; the status banner should acknowledge the stop.
 
-### Test 3: Full Functionality (On Intellechart)
-1. Navigate to: `https://app1.intellechart.net/Eye2MVC/Chart/Chart/Index/`
-2. Open a patient chart
-3. Click "Insert HPI" button
-   - Should trigger the HPI insertion workflow
-   - Status should show success
-4. Click "Select PMH" button
-   - Should trigger the PMH selection workflow
-   - Status should show success
+### Test 3 – AI Planning (requires OpenAI key)
+1. Enter a valid key in **AI Settings** and click **Save Settings**.
+2. On a patient chart, type “Patient has a history of Diverticulosis”.
+3. Click **Send to AI**.
+   - Plan summary should mention PSFH/ROS.
+   - PSFH/ROS card should turn green with a pending command.
 
-### Test 4: Keyboard Shortcuts Still Work
-- [ ] Alt+Shift+H still works (HPI)
-- [ ] Alt+Shift+M still works (PMH)
-- Sidebar buttons should be equivalent to keyboard shortcuts
+### Test 4 – Execute Plan
+1. Click **Send to Nextech**.
+2. Expect status “Plan executed in Nextech!”.
+3. PSFH/ROS card turns blue (Completed).
+
+### Test 5 – Legacy Actions
+- [ ] Clicking **Insert HPI** still works.
+- [ ] Clicking **Select PMH** still works.
+- [ ] Keyboard shortcuts `Alt+Shift+H` and `Alt+Shift+M` still work.
 
 ## 🐛 Troubleshooting
 
 ### Sidebar doesn't open
-- Make sure you reloaded the extension at `chrome://extensions/`
-- Check the extension errors console for any issues
-- Try restarting Chrome
+- Reload the extension at `chrome://extensions/`
+- Check the extension errors console
+- Restart Chrome if needed
 
 ### Buttons don't work
-- Check browser console (F12) for errors
-- Verify you're on the correct Intellechart URL
-- Make sure the content scripts are loaded
+- Open DevTools console for errors
+- Confirm you are on `https://app1.intellechart.net/*`
+- Make sure content scripts loaded (reload the page)
 
-### Styling looks broken
-- Clear browser cache
-- Reload the extension
-- Check that `sidebar.css` file exists
+### AI request fails
+- Verify OpenAI API key is valid and saved
+- Confirm network access to `https://api.openai.com/`
+- Make sure a patient chart is loaded (so patient context is available)
 
-## 📁 New Files Created
+### Dictation issues
+- Check Chrome microphone permissions (click the lock icon in the omnibox → Site settings)
+- Some environments disable the Web Speech API; if so, dictate elsewhere and paste into the narrative box
+
+## 📁 Key Files Updated
 
 ```
 SightFlow/
-├── sidebar/
-│   ├── sidebar.html    # Sidebar UI structure
-│   ├── sidebar.css     # Beautiful styling
-│   └── sidebar.js      # Button click handlers
-├── manifest.json       # Updated with sidePanel permission
-└── background.js       # Updated to handle sidebar messages
+├── background.js          # AI planning + plan execution logic
+├── manifest.json          # Includes microphone + OpenAI permissions
+├── scripts/
+│   ├── history_input.js   # Accepts dynamic payloads
+│   └── psfhros_input.js   # Uses AI-provided condition lists and free text
+└── sidebar/
+    ├── sidebar.html       # New assistant layout
+    ├── sidebar.css        # Updated styling
+    └── sidebar.js         # Speech capture, AI orchestration, UI state
 ```
-
-## 🎨 Design Features
-
-- **Modern gradient header** (blue to green)
-- **Icon-based buttons** with emoji indicators
-- **Smooth animations** and hover effects
-- **Responsive layout** adapts to sidebar width
-- **Status feedback** with color-coded messages
-- **Professional typography** using system fonts
-- **Accessible color contrast** for readability
 
 ## ✅ Success Criteria
 
-Your sidebar is working correctly if:
-1. ✅ It opens without errors
-2. ✅ Logo is displayed prominently
-3. ✅ Both buttons are visible and styled
-4. ✅ Clicking buttons triggers the appropriate actions
-5. ✅ Status messages appear and fade out
-6. ✅ Keyboard shortcuts still work independently
-7. ✅ Design is aesthetically pleasing
+Release is ready when:
+1. ✅ Sidebar renders all new sections without console errors
+2. ✅ Dictation starts/stops (or gracefully warns if unsupported)
+3. ✅ AI planning returns section highlights for supported narratives
+4. ✅ `Send to Nextech` executes History/PSFH-ROS commands successfully
+5. ✅ Quick actions and keyboard shortcuts still operate
+6. ✅ Status banners provide feedback throughout the workflow
 
-Enjoy your new SightFlow sidebar! 🎉
+Enjoy your upgraded SightFlow sidebar! 🎉
 
