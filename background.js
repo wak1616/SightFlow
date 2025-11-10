@@ -37,7 +37,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'EXECUTE_COMMAND') {
     const { command, tabId } = message;
     
-    // Execute the appropriate command
+    // Execute the appropriate command (legacy quick actions)
     if (command === 'sf-insert-hpi') {
       console.log('SightFlow: Executing HPI command from sidebar for tab', tabId);
       chrome.tabs.sendMessage(tabId, {
@@ -57,6 +57,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     
     return true; // Keep the message channel open for async response
+  }
+  
+  // Handle AI-generated commands
+  if (message.type === 'EXECUTE_AI_COMMAND') {
+    const { command, tabId, parameters } = message;
+    console.log('SightFlow: Executing AI command:', command, parameters);
+    
+    if (command === 'INSERT_PSFHROS') {
+      chrome.tabs.sendMessage(tabId, {
+        type: 'INSERT_PSFHROS_AI',
+        conditions: parameters.conditions
+      });
+      sendResponse({ success: true });
+    } else if (command === 'INSERT_HPI') {
+      chrome.tabs.sendMessage(tabId, {
+        type: 'INSERT_HPI_AI',
+        parameters: parameters
+      });
+      sendResponse({ success: true });
+    } else {
+      sendResponse({ success: false, error: 'Unknown AI command' });
+    }
+    
+    return true;
   }
 });
 
