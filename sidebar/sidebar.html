@@ -1,60 +1,244 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SightFlow Controls</title>
-  <link rel="stylesheet" href="sidebar.css">
-</head>
-<body>
-  <div class="sidebar-container">
-    <!-- Logo Section -->
-    <div class="logo-section">
-      <img src="../images/icon-128.png" alt="SightFlow Logo" class="logo">
-    </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SightFlow Assistant</title>
+    <link rel="stylesheet" href="sidebar.css" />
+  </head>
+  <body>
+    <div class="sidebar-container">
+      <header class="logo-section">
+        <img src="../images/icon-128.png" alt="SightFlow Logo" class="logo" />
+        <h1 class="app-title">SightFlow Copilot</h1>
+        <p class="app-subtitle">
+          Capture encounters, review AI plans, and send updates to Nextech.
+        </p>
+      </header>
 
-    <!-- Divider -->
-    <div class="divider"></div>
-
-    <!-- Controls Section -->
-    <div class="controls-section">
-      <h2 class="section-title">Quick Actions</h2>
-      
-      <!-- HPI Button -->
-      <button id="hpi-button" class="action-button hpi-button">
-        <div class="button-content">
-          <div class="button-icon">📝</div>
-          <div class="button-text">
-            <div class="button-title">Insert HPI</div>
-            <div class="button-shortcut">Alt+Shift+H</div>
+      <main class="sidebar-main">
+        <section class="block assistant-section">
+          <h2 class="section-heading">Encounter Capture</h2>
+          <p class="section-description">
+            Record speech or type free text, then let the assistant draft chart updates.
+          </p>
+          <div class="voice-controls">
+            <button id="listen-button" class="button primary">
+              <span class="button-icon" aria-hidden="true">🎙️</span>
+              <span class="button-label">Start Listening</span>
+            </button>
+            <span id="recording-indicator" class="recording-indicator hidden">Listening…</span>
           </div>
-        </div>
-      </button>
 
-      <!-- PSFHROS Button -->
-      <button id="psfhros-button" class="action-button psfhros-button">
-        <div class="button-content">
-          <div class="button-icon">🔍</div>
-          <div class="button-text">
-            <div class="button-title">Select PMH</div>
-            <div class="button-shortcut">Alt+Shift+M</div>
+          <label class="input-label" for="transcript-input">Encounter Notes</label>
+          <textarea
+            id="transcript-input"
+            class="transcript-input"
+            placeholder="Speak or type encounter details here…"
+            rows="6"
+          ></textarea>
+
+          <div class="assistant-actions">
+            <button id="send-to-ai-button" class="button primary" disabled>Send to AI</button>
+            <button id="clear-transcript-button" class="button ghost">Clear</button>
           </div>
+        </section>
+
+        <section class="block plan-section">
+          <div class="plan-header">
+            <h2 class="section-heading">Section Planner</h2>
+            <div id="plan-context-label" class="context-label"></div>
+          </div>
+          <p class="section-description">
+            Review the AI plan below. Sections highlighted in green are pending and will be sent to Nextech once approved.
+          </p>
+          <div id="sections-container" class="sections-container">
+            <article class="section-card" data-section="history">
+              <div class="section-card-header">
+                <div class="section-title-group">
+                  <span class="section-name">History</span>
+                  <span class="section-subtitle">HPI, CC, Mental Status</span>
+                </div>
+                <div class="section-meta">
+                  <span class="hotkey">Alt+Shift+H</span>
+                  <span class="section-status" data-role="status">Idle</span>
+                </div>
+              </div>
+              <div class="section-chip-row" data-role="chips"></div>
+              <textarea
+                class="section-editor"
+                data-section="history"
+                placeholder="No AI suggestions yet."
+                rows="4"
+                disabled
+              ></textarea>
+              <div class="section-rationale" data-role="rationale"></div>
+            </article>
+
+            <article class="section-card" data-section="psfhros">
+              <div class="section-card-header">
+                <div class="section-title-group">
+                  <span class="section-name">PSFH/ROS</span>
+                  <span class="section-subtitle">Past Medical History & ROS</span>
+                </div>
+                <div class="section-meta">
+                  <span class="hotkey">Alt+Shift+M</span>
+                  <span class="section-status" data-role="status">Idle</span>
+                </div>
+              </div>
+              <div class="section-chip-row" data-role="chips"></div>
+              <textarea
+                class="section-editor"
+                data-section="psfhros"
+                placeholder="Notes or additional instructions for PSFH/ROS."
+                rows="4"
+                disabled
+              ></textarea>
+              <div class="section-rationale" data-role="rationale"></div>
+            </article>
+
+            <article class="section-card" data-section="vp">
+              <div class="section-card-header">
+                <div class="section-title-group">
+                  <span class="section-name">V &amp; P</span>
+                  <span class="section-subtitle">Vitals &amp; Procedures</span>
+                </div>
+                <div class="section-meta">
+                  <span class="section-status" data-role="status">Idle</span>
+                </div>
+              </div>
+              <div class="section-chip-row" data-role="chips"></div>
+              <textarea
+                class="section-editor"
+                data-section="vp"
+                placeholder="No AI suggestions yet."
+                rows="3"
+                disabled
+              ></textarea>
+              <div class="section-rationale" data-role="rationale"></div>
+            </article>
+
+            <article class="section-card" data-section="exam">
+              <div class="section-card-header">
+                <div class="section-title-group">
+                  <span class="section-name">Exam</span>
+                  <span class="section-subtitle">Objective findings</span>
+                </div>
+                <div class="section-meta">
+                  <span class="section-status" data-role="status">Idle</span>
+                </div>
+              </div>
+              <div class="section-chip-row" data-role="chips"></div>
+              <textarea
+                class="section-editor"
+                data-section="exam"
+                placeholder="No AI suggestions yet."
+                rows="3"
+                disabled
+              ></textarea>
+              <div class="section-rationale" data-role="rationale"></div>
+            </article>
+
+            <article class="section-card" data-section="impressionPlan">
+              <div class="section-card-header">
+                <div class="section-title-group">
+                  <span class="section-name">Imp/Plan</span>
+                  <span class="section-subtitle">Assessment &amp; Plan</span>
+                </div>
+                <div class="section-meta">
+                  <span class="section-status" data-role="status">Idle</span>
+                </div>
+              </div>
+              <div class="section-chip-row" data-role="chips"></div>
+              <textarea
+                class="section-editor"
+                data-section="impressionPlan"
+                placeholder="No AI suggestions yet."
+                rows="3"
+                disabled
+              ></textarea>
+              <div class="section-rationale" data-role="rationale"></div>
+            </article>
+
+          <article class="section-card" data-section="followUp">
+              <div class="section-card-header">
+                <div class="section-title-group">
+                  <span class="section-name">Follow Up</span>
+                  <span class="section-subtitle">Disposition &amp; reminders</span>
+                </div>
+                <div class="section-meta">
+                  <span class="section-status" data-role="status">Idle</span>
+                </div>
+              </div>
+              <div class="section-chip-row" data-role="chips"></div>
+              <textarea
+                class="section-editor"
+                data-section="followUp"
+                placeholder="No AI suggestions yet."
+                rows="3"
+                disabled
+              ></textarea>
+              <div class="section-rationale" data-role="rationale"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="block settings-section">
+          <button id="toggle-settings-button" class="settings-toggle" aria-expanded="false">
+            Assistant Settings
+            <span class="chevron" aria-hidden="true">▾</span>
+          </button>
+          <div id="settings-panel" class="settings-panel collapsed">
+            <label class="input-label" for="provider-select">Provider</label>
+            <select id="provider-select" class="input-field">
+              <option value="openai">OpenAI</option>
+            </select>
+
+            <label class="input-label" for="openai-api-key">OpenAI API Key</label>
+            <input
+              id="openai-api-key"
+              type="password"
+              class="input-field"
+              placeholder="sk-..."
+              autocomplete="off"
+            />
+
+            <label class="input-label" for="openai-llm-model">LLM Model</label>
+            <input
+              id="openai-llm-model"
+              type="text"
+              class="input-field"
+              value="gpt-4o-mini"
+            />
+
+            <label class="input-label" for="openai-stt-model">Speech-to-Text Model</label>
+            <input
+              id="openai-stt-model"
+              type="text"
+              class="input-field"
+              value="gpt-4o-mini-transcribe"
+            />
+
+            <button id="save-settings-button" class="button primary">Save Settings</button>
+          </div>
+        </section>
+      </main>
+
+      <div class="status-section">
+        <div id="status-message" class="status-message"></div>
+      </div>
+
+      <footer class="sidebar-footer">
+        <button id="send-to-nextech-button" class="button primary" disabled>
+          Send to Nextech
+        </button>
+        <div class="footer-meta">
+          <span id="plan-provider-label" class="provider-label"></span>
+          <span class="version">v0.2.0</span>
         </div>
-      </button>
+      </footer>
     </div>
 
-    <!-- Status Section -->
-    <div class="status-section">
-      <div id="status-message" class="status-message"></div>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-      <p class="version">v0.1.0</p>
-    </div>
-  </div>
-
-  <script src="sidebar.js"></script>
-</body>
+    <script src="sidebar.js"></script>
+  </body>
 </html>
-

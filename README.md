@@ -1,73 +1,70 @@
 # SightFlow Nextech Helper
 
-A Chrome extension that helps streamline workflow in Intellechart by providing keyboard shortcuts and a convenient sidebar to insert text into HPI (History of Present Illness) fields and select PMH elements.
+A Manifest V3 Chrome extension that brings an AI-assisted copilot into the Nextech (Intellechart) workflow. SightFlow captures free text or speech, produces an LLM-generated plan for each chart section, and executes vetted changes on demand.
 
-## Features
+## Key Features
 
-- **Sidebar Interface**: Beautiful side panel with buttons for quick actions
-- **Keyboard Shortcuts**: 
-  - Press `Alt+Shift+H` to insert text into the Extended HPI textarea
-  - Press `Alt+Shift+M` to select PMH (Past Medical History) elements
-- **Smart Field Detection**: Automatically finds and expands the HPI section if needed
-- **Patient Context Awareness**: Gathers patient context for processing
-- **Angular-Compatible**: Properly triggers change detection for Angular-based forms
-- **Modern UI**: Aesthetically pleasing interface with the SightFlow logo
+- **Voice or Free-Text Capture** – Dictate encounter notes via the Listen button or type directly into the sidebar.
+- **LLM Driven Planner** – “Send to AI” analyzes the narrative and prepares section-specific commands (History, PSFH/ROS, etc.).
+- **Pending Section Dashboard** – Each Nextech section receives a status card, editable notes, and visual indicators when changes await approval.
+- **One-Click Execution** – “Send to Nextech” runs the approved automation (currently History + PSFH/ROS) by invoking the existing keyboard command flows.
+- **De-identification Pipeline** – Patient context strings are hashed into a local chart ID before any outbound API request; configurable providers live in `chrome.storage`.
+- **Fallback Heuristics** – If an LLM or key is unavailable, a local parser still surfaces reasonable default actions.
+
+### Still Available
+
+- `Alt+Shift+H` – Insert/update History section directly.
+- `Alt+Shift+M` – Insert/update PSFH/ROS selections.
 
 ## Installation
 
-1. Clone this repository or download the files
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" in the top-right corner
-4. Click "Load unpacked" and select the extension directory
-5. The extension should now be active on Intellechart pages
+1. Clone the repository or download the source.
+2. Navigate to `chrome://extensions/` and enable **Developer mode**.
+3. Click **Load unpacked** and select this project folder.
+4. Pin the extension and open a patient chart at `https://app1.intellechart.net/*`.
 
-## Usage
+## Configuring the Assistant
 
-### Using the Sidebar (Recommended)
+1. Open the side panel (extension icon → “Open side panel”).
+2. Expand **Assistant Settings**.
+3. Select the provider (OpenAI supported in v0.2.0).
+4. Supply an API key and, optionally, custom model IDs.
+5. Click **Save Settings**. Keys remain local to the browser profile.
 
-1. Navigate to a patient chart in Intellechart (https://app1.intellechart.net/*)
-2. Click the SightFlow extension icon and open the side panel
-3. Use the action buttons:
-   - **Insert HPI** button - Inserts HPI text (equivalent to Alt+Shift+H)
-   - **Select PMH** button - Selects PMH elements (equivalent to Alt+Shift+M)
-4. Status messages will appear to confirm the action
+Without an API key the extension reverts to heuristics for planning; speech-to-text requires the OpenAI audio endpoint and microphone permission.
 
-### Using Keyboard Shortcuts
+## Project Structure
 
-1. Navigate to a patient chart in Intellechart (https://app1.intellechart.net/*)
-2. Press `Alt+Shift+H` to trigger the HPI insertion
-3. Press `Alt+Shift+M` to trigger the PMH selection
-4. The actions will execute automatically
-
-## Files
-
-- `manifest.json` - Extension configuration and permissions
-- `background.js` - Background service worker handling keyboard shortcuts and sidebar messages
-- `scripts/history_input.js` - Content script for HPI insertion
-- `scripts/psfhros_input.js` - Content script for PMH selection
-- `scripts/shared_utils.js` - Shared utility functions
-- `sidebar/sidebar.html` - Sidebar interface
-- `sidebar/sidebar.css` - Sidebar styling
-- `sidebar/sidebar.js` - Sidebar functionality
-
-## Customization
-
-To change the text being inserted, edit the `text` property in the `chrome.tabs.sendMessage` call in `background.js` (line 13).
+| Path | Purpose |
+| --- | --- |
+| `manifest.json` | Extension manifest (MV3) and permissions |
+| `background.js` | Service worker: commands, LLM/STT orchestration, de-identification |
+| `scripts/shared_utils.js` | DOM helpers shared by content scripts |
+| `scripts/history_input.js` | Applies History updates within Nextech |
+| `scripts/psfhros_input.js` | Applies PSFH/ROS updates within Nextech |
+| `sidebar/` | Sidebar UI (HTML/CSS/JS) |
+| `SIDEBAR_USAGE.md` | Detailed usage guide |
 
 ## Permissions
 
-- `scripting` - Required to inject content scripts
-- `activeTab` - Access to the currently active tab
-- `storage` - For potential future features requiring data storage
-- `host_permissions` - Limited to `app1.intellechart.net` domain
+- `activeTab` – Identify the focused chart tab for messaging.
+- `commands` – Register keyboard shortcuts (`Alt+Shift+H/M`).
+- `sidePanel` – Provide the modern Chrome side panel UI.
+- `storage` – Persist assistant configuration, chart ID mapping.
+- `optional_permissions: audioCapture` – Request microphone access when voice capture is used.
+- `host_permissions` – Scoped to `https://app1.intellechart.net/*`.
 
-## Development
+## Development Notes
 
-This extension uses Manifest V3 and is compatible with modern Chrome/Chromium browsers.
+- Built for modern Chromium browsers with Manifest V3.
+- No bundler—plain ES and DOM APIs keep the footprint small.
+- Voice capture uses `MediaRecorder`; ensure HTTPS contexts during testing.
+- LLM calls target `https://api.openai.com/` (routes configurable in `background.js`).
 
 ## Version
 
-Current version: 0.1.0
+- Current version: **0.2.0**
 
 ## License
 
+TBD (add license details if required).

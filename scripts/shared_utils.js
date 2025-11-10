@@ -205,3 +205,11 @@ function extractTitlesFromScrollable(parentTagNameString, yPixels) {
   const titles = Array.from(elements).map(element => element.getAttribute('title'));
   return titles;
 }
+
+// ==================== MESSAGE HANDLERS ====================
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.type === 'REQUEST_CONTEXT') {
+    sendResponse({ context: getContext() });
+  }
+});

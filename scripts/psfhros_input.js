@@ -6,60 +6,90 @@
 // ==================== MESSAGE LISTENER ====================
 
 chrome.runtime.onMessage.addListener(async (msg) => {
-  console.log('SightFlow PSFHROS: Message received in content script', msg);
-  
-  if (msg?.type === 'INSERT_PSFHROS') {
-    console.log('SightFlow PSFHROS: Processing INSERT_PSFHROS command');
-    
-    //***Get patient context 
-    const ctx = getContext();
+  if (msg?.type !== 'INSERT_PSFHROS') {
+    return;
+  }
 
-    // STEP 1: Make sure relevant section is collapsed before starting
+  console.log('SightFlow PSFHROS: Processing INSERT_PSFHROS command');
+
+  const defaultPayload = {
+    sectionId: '#pmHx',
+    sectionSelector: 'chart-medical-hx',
+    conditions: {
+      select: ['Negative'],
+      freeText: []
+    },
+    note: '',
+    addButtonSelector: 'chart-medical-hx'
+  };
+
+  const overrides = msg.payload ?? {};
+
+  if (msg.psfhros_text && !overrides.note) {
+    overrides.note = msg.psfhros_text;
+  }
+
+  if (Array.isArray(msg.conditionsToSelect) && !overrides.conditions) {
+    overrides.conditions = { select: msg.conditionsToSelect, freeText: [] };
+  }
+
+  const payload = {
+    ...defaultPayload,
+    ...overrides,
+    conditions: {
+      select: overrides.conditions?.select ?? overrides.select ?? defaultPayload.conditions.select,
+      freeText: overrides.conditions?.freeText ?? overrides.freeText ?? defaultPayload.conditions.freeText
+    }
+  };
+
+  try {
     collapse();
-    
-    // STEP 2: Expand the PSFHROS section
-    expandByID('#pmHx');
+
+    await expandByID(payload.sectionId);
     await wait();
-  
-    // STEP 3: Extract all available titles from a scrollable div within a parent element (argument = tagName of parent element)
-    const availableTitles = extractTitlesFromScrollable('chart-medical-hx', '300px');
 
-    // STEP 4: Click PMH problems by Title (only if they exist in the list), otherwise free type the condition(s)
-    const conditionsToSelect = ['Negative', 'Diverticulosis', 'Diabetes Type II', 'broken heart'];
-    
-    for (const condition of conditionsToSelect) {
-      // Search for the condition, ignoring leading/trailing whitespace
-      const matchedTitle = availableTitles.find(title => 
-        title.trim().toLowerCase() === condition.trim().toLowerCase()
-      );
-      
-      if (matchedTitle) {
+    const availableTitles = extractTitlesFromScrollable(payload.sectionSelector, '300px');
+
+    const normalizedAvailable = availableTitles.map(title => title.trim().toLowerCase());
+
+    const toSelect = (payload.conditions.select ?? []).filter(Boolean);
+    const toCreate = (payload.conditions.freeText ?? []).filter(Boolean);
+
+    for (const condition of toSelect) {
+      const lowerCondition = condition.trim().toLowerCase();
+      const index = normalizedAvailable.indexOf(lowerCondition);
+      if (index !== -1) {
+        const matchedTitle = availableTitles[index];
         console.log(`SightFlow: "${condition}" found as "${matchedTitle}", clicking...`);
-        clickElementByTitle(matchedTitle); // Use the original title with whitespace
+        clickElementByTitle(matchedTitle);
       } else {
-        console.log(`SightFlow: "${condition}" is NOT available in the list, free-texting it...`);
-        
-        // First need to click on the specific medical history Add button 
-        clickAddButtonWithinSection('chart-medical-hx');
-
-        // Try to find the free text input field, use an attribute argument)
-        const textInput = findInputBox('chart-medical-hx');
-        
-        if (textInput) {
-          console.log('SightFlow:clicking...');
-          textInput.click();
-          console.log("SightFlow: Clicked input box within section. Free typing...");
-          // Type the condition using setAngularValue
-          setAngularValue(textInput, condition);
-          console.log("SightFlow: Text inserted into input box and event dispatched.");
-        } else {
-          console.log(`SightFlow: Could not find the input field for "${condition}"`);
-        }
+        console.log(`SightFlow: "${condition}" not found in selectable list, moving to free text.`);
+        toCreate.push(condition);
       }
     }
 
-    // STEP 5: collapse to save
+    for (const condition of toCreate) {
+      console.log(`SightFlow: Free-typing condition "${condition}"`);
+      clickAddButtonWithinSection(payload.sectionSelector);
+      const textInput = findInputBox(payload.sectionSelector);
+      if (textInput) {
+        textInput.click();
+        setAngularValue(textInput, condition);
+      } else {
+        console.log(`SightFlow: Could not find the input field for "${condition}"`);
+      }
+    }
+
+    if (payload.note) {
+      const noteArea = clickTextAreaWithinSection(payload.sectionSelector);
+      if (noteArea) {
+        setAngularValue(noteArea, payload.note);
+      }
+    }
+
     collapse();
+  } catch (error) {
+    console.error('SightFlow PSFHROS: Failed to process INSERT_PSFHROS command', error);
   }
 });
 
