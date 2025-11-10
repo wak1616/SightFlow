@@ -33,6 +33,15 @@ function getContext() {
   return patientContext;
 }
 
+// Listen for context requests from sidebar
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.type === 'GET_CONTEXT') {
+    const context = getContext();
+    sendResponse({ context: context });
+    return true; // Keep channel open for async response
+  }
+});
+
 /**
  * Sets the value of a mat-input textarea or input element in a way that Angular will detect
  * @param {HTMLElement} el - The textarea or input element

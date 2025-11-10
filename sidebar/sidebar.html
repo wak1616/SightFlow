@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SightFlow Controls</title>
+  <title>SightFlow AI Assistant</title>
   <link rel="stylesheet" href="sidebar.css">
 </head>
 <body>
@@ -11,36 +11,101 @@
     <!-- Logo Section -->
     <div class="logo-section">
       <img src="../images/icon-128.png" alt="SightFlow Logo" class="logo">
+      <h1 class="app-title">SightFlow AI</h1>
     </div>
 
     <!-- Divider -->
     <div class="divider"></div>
 
-    <!-- Controls Section -->
-    <div class="controls-section">
-      <h2 class="section-title">Quick Actions</h2>
+    <!-- AI Assistant Section -->
+    <div class="ai-assistant-section">
+      <h2 class="section-title">AI Assistant</h2>
       
-      <!-- HPI Button -->
-      <button id="hpi-button" class="action-button hpi-button">
-        <div class="button-content">
-          <div class="button-icon">📝</div>
-          <div class="button-text">
-            <div class="button-title">Insert HPI</div>
-            <div class="button-shortcut">Alt+Shift+H</div>
-          </div>
+      <!-- Speech-to-Text Controls -->
+      <div class="speech-controls">
+        <button id="listen-button" class="listen-button">
+          <span class="listen-icon">🎤</span>
+          <span class="listen-text">Listen</span>
+        </button>
+        <div id="listening-indicator" class="listening-indicator hidden">
+          <span class="pulse-dot"></span>
+          <span>Listening...</span>
         </div>
-      </button>
+      </div>
 
-      <!-- PSFHROS Button -->
-      <button id="psfhros-button" class="action-button psfhros-button">
-        <div class="button-content">
-          <div class="button-icon">🔍</div>
-          <div class="button-text">
-            <div class="button-title">Select PMH</div>
-            <div class="button-shortcut">Alt+Shift+M</div>
-          </div>
-        </div>
+      <!-- Text Input Area -->
+      <div class="text-input-section">
+        <label for="medical-text-input" class="input-label">Medical Notes</label>
+        <textarea 
+          id="medical-text-input" 
+          class="medical-text-input" 
+          placeholder="Type or speak medical notes here..."></textarea>
+      </div>
+
+      <!-- Send to AI Button -->
+      <button id="send-to-ai-button" class="send-to-ai-button" disabled>
+        <span class="button-icon">🤖</span>
+        <span>Send to AI</span>
       </button>
+    </div>
+
+    <!-- Chart Sections -->
+    <div class="chart-sections">
+      <h2 class="section-title">Chart Sections</h2>
+      
+      <div id="section-history" class="chart-section">
+        <div class="section-header">
+          <span class="section-icon">📋</span>
+          <span class="section-name">History</span>
+          <span class="section-status"></span>
+        </div>
+        <div class="section-details">HPI, CC, Mental Status, Extended HPI</div>
+      </div>
+
+      <div id="section-psfhros" class="chart-section">
+        <div class="section-header">
+          <span class="section-icon">🔍</span>
+          <span class="section-name">PSFH/ROS</span>
+          <span class="section-status"></span>
+        </div>
+        <div class="section-details">PMHx</div>
+      </div>
+
+      <div id="section-vp" class="chart-section">
+        <div class="section-header">
+          <span class="section-icon">📊</span>
+          <span class="section-name">V & P</span>
+          <span class="section-status"></span>
+        </div>
+        <div class="section-details">Vital Signs & Physical</div>
+      </div>
+
+      <div id="section-exam" class="chart-section">
+        <div class="section-header">
+          <span class="section-icon">🩺</span>
+          <span class="section-name">Exam</span>
+          <span class="section-status"></span>
+        </div>
+        <div class="section-details">Physical Examination</div>
+      </div>
+
+      <div id="section-impplan" class="chart-section">
+        <div class="section-header">
+          <span class="section-icon">💡</span>
+          <span class="section-name">Imp/Plan</span>
+          <span class="section-status"></span>
+        </div>
+        <div class="section-details">Impression & Plan</div>
+      </div>
+
+      <div id="section-followup" class="chart-section">
+        <div class="section-header">
+          <span class="section-icon">📅</span>
+          <span class="section-name">Follow Up</span>
+          <span class="section-status"></span>
+        </div>
+        <div class="section-details">Follow-up Instructions</div>
+      </div>
     </div>
 
     <!-- Status Section -->
@@ -48,13 +113,50 @@
       <div id="status-message" class="status-message"></div>
     </div>
 
+    <!-- Send to Nextech Button -->
+    <div class="action-footer">
+      <button id="send-to-nextech-button" class="send-to-nextech-button" disabled>
+        <span class="button-icon">📤</span>
+        <span>Send to Nextech</span>
+      </button>
+    </div>
+
+    <!-- Settings Button -->
+    <div class="settings-section">
+      <button id="settings-button" class="settings-button">
+        <span>⚙️</span>
+        <span>Settings</span>
+      </button>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Settings</h3>
+          <button id="close-settings" class="close-button">×</button>
+        </div>
+        <div class="modal-body">
+          <label for="api-key-input" class="input-label">OpenAI API Key</label>
+          <input 
+            type="password" 
+            id="api-key-input" 
+            class="api-key-input" 
+            placeholder="sk-...">
+          <p class="help-text">Your API key is stored locally and never shared.</p>
+          <button id="save-api-key" class="save-button">Save API Key</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Footer -->
     <div class="footer">
-      <p class="version">v0.1.0</p>
+      <p class="version">v0.2.0</p>
     </div>
   </div>
 
+  <script src="deidentification.js"></script>
+  <script src="llm_service.js"></script>
   <script src="sidebar.js"></script>
 </body>
 </html>
-

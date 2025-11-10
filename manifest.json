@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "manifest_version": 3,
   "description": "Streamlines workflow in Intellechart by providing keyboard shortcuts or copilot (TBD) to insert text into HPI fields",
-  "permissions": ["activeTab", "commands", "sidePanel"],
-  "host_permissions": ["https://app1.intellechart.net/*"],
+  "permissions": ["activeTab", "commands", "sidePanel", "storage"],
+  "host_permissions": ["https://app1.intellechart.net/*", "https://api.openai.com/*"],
   "action": {
     "default_title": "SightFlow"
   },
@@ -24,7 +24,7 @@
   },
   "content_scripts": [
     {
-      "js": ["scripts/shared_utils.js", "scripts/history_input.js", "scripts/psfhros_input.js"],
+      "js": ["scripts/shared_utils.js", "scripts/history_input.js", "scripts/psfhros_input.js", "scripts/command_executor.js"],
       "matches": ["https://app1.intellechart.net/Eye2MVC/Chart/Chart/Index/"],
       "run_at": "document_idle",
       "all_frames": true
