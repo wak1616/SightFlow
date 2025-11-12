@@ -11,21 +11,21 @@ chrome.commands.onCommand.addListener(async (command) => {
     return;
   }
   
-  // Handle Alt+Shift+H shortcut - Focus History section
+  // Handle Alt+Shift+H shortcut - Insert text into HPI
   if (command === 'sf-insert-hpi') {
-    console.log('SightFlow: Sending FOCUS_SECTION message to tab', tab.id);
+    console.log('SightFlow: Sending INSERT_HPI message to tab', tab.id);
     chrome.tabs.sendMessage(tab.id, {
-      type: 'FOCUS_SECTION',
-      section: 'History'
+      type: 'INSERT_HPI',
+      extendedhpi_text: 'Patient presents with blurry vision OU, despite the use of glasses, as well as increased glare. This has worsened over the past 6 months. The patient has been told he may have cataracts.'
     });
   }
   
-  // Handle Alt+Shift+M shortcut - Focus PSFH/ROS section
+  // Handle Alt+Shift+M shortcut - Insert text into PSFH/ROS
   if (command === 'sf-insert-psfhros') {
-    console.log('SightFlow: Sending FOCUS_SECTION message to tab', tab.id);
+    console.log('SightFlow: Sending INSERT_PSFHROS message to tab', tab.id);
     chrome.tabs.sendMessage(tab.id, {
-      type: 'FOCUS_SECTION',
-      section: 'PSFH/ROS'
+      type: 'INSERT_PSFHROS',
+      psfhros_text: 'PSFH/ROS content goes here.'
     });
   }
 });

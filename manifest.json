@@ -1,12 +1,12 @@
 {
   "name": "SightFlow Nextech Helper",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "manifest_version": 3,
-  "description": "Streamlines workflow in Intellechart by providing keyboard shortcuts or copilot (TBD) to insert text into HPI fields",
-  "permissions": ["activeTab", "commands", "sidePanel"],
+  "description": "AI-powered EMR assistant with speech-to-text and intelligent plan generation for Nextech",
+  "permissions": ["activeTab", "commands", "sidePanel", "storage"],
   "host_permissions": ["https://app1.intellechart.net/*"],
   "action": {
-    "default_title": "SightFlow"
+    "default_title": "SightFlow AI Assistant"
   },
   "side_panel": {
     "default_path": "sidebar/sidebar.html"
@@ -18,13 +18,25 @@
     "128": "images/icon-128.png"
   },
   "background": { "service_worker": "background.js" },
+  "options_page": "options.html",
   "commands": {
-    "sf-insert-hpi": { "suggested_key": { "default": "Alt+Shift+H" }, "description": "Insert text" },
-    "sf-insert-psfhros": { "suggested_key": { "default": "Alt+Shift+M" }, "description": "select PMH elements" }
+    "sf-insert-hpi": { 
+      "suggested_key": { "default": "Alt+Shift+H" }, 
+      "description": "Focus/open History section" 
+    },
+    "sf-insert-psfhros": { 
+      "suggested_key": { "default": "Alt+Shift+M" }, 
+      "description": "Focus/open PSFH/ROS section" 
+    }
   },
   "content_scripts": [
     {
-      "js": ["scripts/shared_utils.js", "scripts/history_input.js", "scripts/psfhros_input.js"],
+      "js": [
+        "scripts/shared_utils.js", 
+        "scripts/history_input.js", 
+        "scripts/psfhros_input.js",
+        "scripts/plan_executor.js"
+      ],
       "matches": ["https://app1.intellechart.net/Eye2MVC/Chart/Chart/Index/"],
       "run_at": "document_idle",
       "all_frames": true

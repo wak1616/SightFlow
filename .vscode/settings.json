@@ -1,0 +1,51 @@
+{
+  // These settings work for both VS Code and Cursor
+  // Cursor is VS Code-compatible and uses the same settings.json format
+  
+  // Use WSL as the default terminal
+  "terminal.integrated.defaultProfile.windows": "WSL",
+  "terminal.integrated.profiles.windows": {
+    "WSL": {
+      "path": "wsl.exe",
+      "args": []
+    }
+  },
+  
+  // Use Git from WSL instead of Windows Git
+  "git.path": "/usr/bin/git",
+  "git.useEditorAsCommitInput": true,
+  "git.autofetch": true,
+  "git.enableSmartCommit": true,
+  
+  // File system settings for WSL
+  "files.eol": "\n",
+  "files.encoding": "utf8",
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  
+  // Use WSL file watcher
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true
+  },
+  
+  // Remote WSL settings
+  "remote.WSL.fileWatcher.polling": false,
+  "remote.WSL.useShellEnvironment": true,
+  
+  // Editor settings optimized for Linux/WSL
+  "editor.defaultFormatter": null,
+  "editor.formatOnSave": false,
+  "editor.insertSpaces": true,
+  "editor.tabSize": 2,
+  
+  // Path settings - use WSL paths
+  "terminal.integrated.cwd": "${workspaceFolder}",
+  
+  // Ensure we're using WSL for all operations
+  "remote.extensionKind": {
+    "ms-vscode-remote.remote-wsl": ["workspace"]
+  }
+}
+

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SightFlow Controls</title>
+  <title>SightFlow AI Assistant</title>
   <link rel="stylesheet" href="sidebar.css">
 </head>
 <body>
@@ -11,37 +11,67 @@
     <!-- Logo Section -->
     <div class="logo-section">
       <img src="../images/icon-128.png" alt="SightFlow Logo" class="logo">
+      <h1 class="app-title">SightFlow AI</h1>
     </div>
 
-    <!-- Divider -->
-    <div class="divider"></div>
-
-    <!-- Controls Section -->
-    <div class="controls-section">
-      <h2 class="section-title">Quick Actions</h2>
+    <!-- Input Section -->
+    <div class="input-section">
+      <button id="listen-button" class="listen-button">
+        <span class="listen-icon">🎤</span>
+        <span class="listen-text">Listen</span>
+      </button>
       
-      <!-- HPI Button -->
-      <button id="hpi-button" class="action-button hpi-button">
-        <div class="button-content">
-          <div class="button-icon">📝</div>
-          <div class="button-text">
-            <div class="button-title">Insert HPI</div>
-            <div class="button-shortcut">Alt+Shift+H</div>
-          </div>
-        </div>
-      </button>
-
-      <!-- PSFHROS Button -->
-      <button id="psfhros-button" class="action-button psfhros-button">
-        <div class="button-content">
-          <div class="button-icon">🔍</div>
-          <div class="button-text">
-            <div class="button-title">Select PMH</div>
-            <div class="button-shortcut">Alt+Shift+M</div>
-          </div>
-        </div>
+      <div class="textarea-wrapper">
+        <textarea id="input-textarea" 
+                  class="input-textarea" 
+                  placeholder="Type or dictate your notes..."
+                  rows="4"></textarea>
+      </div>
+      
+      <button id="send-to-ai" class="send-to-ai-button" disabled>
+        Send to AI
       </button>
     </div>
+
+    <!-- Sections List -->
+    <div class="sections-list">
+      <div class="section-item" data-section="History">
+        <span class="section-indicator"></span>
+        <span class="section-name">History</span>
+      </div>
+      <div class="section-item" data-section="PSFH/ROS">
+        <span class="section-indicator"></span>
+        <span class="section-name">PSFH/ROS</span>
+      </div>
+      <div class="section-item" data-section="V & P">
+        <span class="section-indicator"></span>
+        <span class="section-name">V & P</span>
+      </div>
+      <div class="section-item" data-section="Exam">
+        <span class="section-indicator"></span>
+        <span class="section-name">Exam</span>
+      </div>
+      <div class="section-item" data-section="Diagnostics">
+        <span class="section-indicator"></span>
+        <span class="section-name">Diagnostics</span>
+      </div>
+      <div class="section-item" data-section="Imp/Plan">
+        <span class="section-indicator"></span>
+        <span class="section-name">Imp/Plan</span>
+      </div>
+      <div class="section-item" data-section="Follow Up">
+        <span class="section-indicator"></span>
+        <span class="section-name">Follow Up</span>
+      </div>
+    </div>
+
+    <!-- Plan Cards Container -->
+    <div id="plan-cards-container" class="plan-cards-container"></div>
+
+    <!-- Execute Button -->
+    <button id="execute-plan" class="execute-plan-button" disabled>
+      Send ALL to Nextech
+    </button>
 
     <!-- Status Section -->
     <div class="status-section">
@@ -50,11 +80,10 @@
 
     <!-- Footer -->
     <div class="footer">
-      <p class="version">v0.1.0</p>
+      <p class="version">v0.2.0</p>
     </div>
   </div>
 
   <script src="sidebar.js"></script>
 </body>
 </html>
-
