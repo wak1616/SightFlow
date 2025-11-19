@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "manifest_version": 3,
   "description": "AI-powered EMR assistant with speech-to-text and intelligent plan generation for Nextech",
-  "permissions": ["activeTab", "commands", "sidePanel", "storage"],
+  "permissions": ["activeTab", "commands", "sidePanel", "storage", "audioCapture"],
   "host_permissions": ["https://app1.intellechart.net/*"],
   "action": {
     "default_title": "SightFlow AI Assistant"

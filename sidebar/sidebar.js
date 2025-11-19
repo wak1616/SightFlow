@@ -82,7 +82,19 @@ async function toggleRecording() {
 // Start recording
 async function startRecording() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Check if mediaDevices is available
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('MediaDevices API not supported');
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 44100
+      } 
+    });
+    
     mediaRecorder = new MediaRecorder(stream);
     audioChunks = [];
 
@@ -104,7 +116,15 @@ async function startRecording() {
     showStatus('Listening...', 'success');
   } catch (error) {
     console.error('Failed to start recording:', error);
-    showStatus('Microphone access denied', 'error');
+    let errorMsg = 'Microphone access denied';
+    
+    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+      errorMsg = 'Please allow microphone access in your browser settings';
+    } else if (error.name === 'NotFoundError') {
+      errorMsg = 'No microphone found';
+    }
+    
+    showStatus(errorMsg, 'error');
   }
 }
 
