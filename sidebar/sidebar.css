@@ -67,6 +67,25 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+.request-mic-button {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 2px solid #f39c12;
+  border-radius: 8px;
+  background: white;
+  color: #f39c12;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.request-mic-button:hover {
+  background: #f39c12;
+  color: white;
+}
+
 .listen-button {
   width: 100%;
   padding: 12px;

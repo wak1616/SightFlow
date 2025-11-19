@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grant Microphone Permission</title>
+  <style>
+    body {
+      width: 400px;
+      height: 300px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 30px;
+      text-align: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    p {
+      font-size: 16px;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      background: white;
+      color: #667eea;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 14px;
+      padding: 10px;
+      border-radius: 5px;
+      background: rgba(255,255,255,0.2);
+    }
+    .success {
+      background: rgba(80, 200, 120, 0.3) !important;
+    }
+    .error {
+      background: rgba(231, 76, 60, 0.3) !important;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎤 Microphone Permission</h1>
+  <p>Click the button below and then <strong>click "Allow"</strong> when Chrome asks to use your microphone.</p>
+  
+  <button id="grant-btn">Grant Permission</button>
+  
+  <div id="status"></div>
+  
+  <script src="popup_mic_permission.js"></script>
+</body>
+</html>

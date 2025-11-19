@@ -2,70 +2,104 @@
 // Handles execution of plan items from the AI assistant
 
 // Listen for EXECUTE_PLAN messages
-chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type === 'EXECUTE_PLAN') {
     console.log('SightFlow Plan Executor: Received plan', msg);
     
-    try {
-      await executePlanItems(msg.items);
-      sendResponse({ success: true });
-    } catch (error) {
-      console.error('SightFlow Plan Executor: Error', error);
-      sendResponse({ success: false, error: error.message });
-    }
+    // Handle async execution
+    (async () => {
+      try {
+        await executePlanItems(msg.items);
+        sendResponse({ success: true });
+      } catch (error) {
+        console.error('SightFlow Plan Executor: Error', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
     
-    return true; // Keep message channel open
+    return true; // Keep message channel open for async response
   }
 });
 
 // Execute plan items
 async function executePlanItems(items) {
+  console.log(`SightFlow Plan Executor: Starting execution of ${items.length} item(s)`);
+  
   for (const item of items) {
     console.log(`SightFlow: Executing item for ${item.target_section}`, item);
+    console.log(`SightFlow: Item has ${item.commands?.length || 0} command(s)`);
+    
+    if (!item.commands || item.commands.length === 0) {
+      console.warn('SightFlow: No commands to execute for this item');
+      continue;
+    }
     
     for (const command of item.commands) {
+      console.log('SightFlow: Executing command:', command);
       await executeCommand(command);
       await wait(500); // Small delay between commands
     }
   }
+  
+  console.log('SightFlow Plan Executor: Execution complete');
 }
 
 // Execute a single command
 async function executeCommand(command) {
-  console.log('SightFlow: Executing command', command);
+  console.log('SightFlow: Executing command:', JSON.stringify(command));
   
-  switch (command.name) {
+  // Normalize command format - handle both 'name'/'params' and 'command'/'args'
+  const commandName = command.name || command.command;
+  const commandParams = command.params || command.args;
+  
+  if (!commandName) {
+    console.error('SightFlow: Invalid command - no name/command property', command);
+    return;
+  }
+  
+  console.log(`SightFlow: Command name: "${commandName}"`);
+  
+  switch (commandName) {
     case 'sf-insert-hpi':
-      await insertHPI(command.params.text);
+      console.log('SightFlow: Calling insertHPI with:', commandParams);
+      await insertHPI(commandParams.text);
       break;
       
     case 'sf-insert-extended-hpi':
-      await insertExtendedHPI(command.params.text);
+      console.log('SightFlow: Calling insertExtendedHPI with:', commandParams);
+      await insertExtendedHPI(commandParams.text);
       break;
       
     case 'sf-insert-psfhros':
-      await insertPSFHROS(command.params.conditionsToSelect);
+      console.log('SightFlow: Calling insertPSFHROS with:', commandParams.conditionsToSelect);
+      await insertPSFHROS(commandParams.conditionsToSelect);
       break;
       
     case 'sf-insert-exam':
-      await insertExam(command.params.text);
+      console.log('SightFlow: Calling insertExam with:', commandParams);
+      await insertExam(commandParams.text);
       break;
       
     case 'sf-insert-diagnostics':
-      await insertDiagnostics(command.params.text);
+      console.log('SightFlow: Calling insertDiagnostics with:', commandParams);
+      await insertDiagnostics(commandParams.text);
       break;
       
     case 'sf-insert-impplan':
-      await insertImpPlan(command.params.text);
+      console.log('SightFlow: Calling insertImpPlan with:', commandParams);
+      await insertImpPlan(commandParams.text);
       break;
       
     case 'sf-insert-followup':
-      await insertFollowUp(command.params.text);
+      console.log('SightFlow: Calling insertFollowUp with:', commandParams);
+      await insertFollowUp(commandParams.text);
       break;
       
     default:
-      console.warn('SightFlow: Unknown command', command.name);
+      console.warn('SightFlow: Unknown command name:', commandName);
   }
+  
+  console.log(`SightFlow: Finished executing command: ${commandName}`);
 }
 
 // Command implementations
@@ -202,35 +236,38 @@ async function insertFollowUp(text) {
 }
 
 // Handle section focus messages (for keyboard shortcuts)
-chrome.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type === 'FOCUS_SECTION') {
     console.log('SightFlow: Focusing section', msg.section);
     
-    try {
-      switch (msg.section) {
-        case 'History':
-          collapse();
-          expandByID('#hpiCC');
-          await wait(500);
-          const historyTextarea = clickTextAreaWithinSection('chart-hpi');
-          if (historyTextarea) historyTextarea.focus();
-          break;
-          
-        case 'PSFH/ROS':
-          collapse();
-          expandByID('#pmHx');
-          await wait(500);
-          break;
-          
-        default:
-          console.warn('Unknown section:', msg.section);
+    // Handle async execution
+    (async () => {
+      try {
+        switch (msg.section) {
+          case 'History':
+            collapse();
+            expandByID('#hpiCC');
+            await wait(500);
+            const historyTextarea = clickTextAreaWithinSection('chart-hpi');
+            if (historyTextarea) historyTextarea.focus();
+            break;
+            
+          case 'PSFH/ROS':
+            collapse();
+            expandByID('#pmHx');
+            await wait(500);
+            break;
+            
+          default:
+            console.warn('Unknown section:', msg.section);
+        }
+        sendResponse({ success: true });
+      } catch (error) {
+        console.error('SightFlow: Error focusing section', error);
+        sendResponse({ success: false, error: error.message });
       }
-      sendResponse({ success: true });
-    } catch (error) {
-      console.error('SightFlow: Error focusing section', error);
-      sendResponse({ success: false, error: error.message });
-    }
+    })();
     
-    return true;
+    return true; // Keep message channel open for async response
   }
 });

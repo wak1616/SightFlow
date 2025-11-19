@@ -5,6 +5,7 @@ let OPENAI_API_KEY = ''; // TODO: Get from chrome.storage.sync
 const OPENAI_API_URL = 'https://api.openai.com/v1';
 
 // DOM Elements
+const requestMicButton = document.getElementById('request-mic-button');
 const listenButton = document.getElementById('listen-button');
 const inputTextarea = document.getElementById('input-textarea');
 const sendToAIButton = document.getElementById('send-to-ai');
@@ -20,35 +21,81 @@ let isRecording = false;
 
 // System prompt for GPT-5-mini
 const SYSTEM_PROMPT = `You are a medical charting assistant that converts free text (from speech or typing) into a structured Plan of changes to a Nextech EMR chart.
-Only output valid JSON with the following TypeScript shape: Plan { source, raw_input, items[], warnings? }.
-VALID sections: ["History","PSFH/ROS","V & P","Exam","Diagnostics","Imp/Plan","Follow Up"].
-History subsections: ["CC","HPI","Extended HPI","Mental Status Exam"].
-PSFH/ROS subsections: ["PMHx"].
-VALID actions:
-– insert_text(field, value) for narrative fields (CC, HPI, Extended HPI, Mental Status Exam, Exam, Diagnostics, Imp/Plan, Follow Up)
-– add_condition(condition[, codeSystem, code]) for PMHx
-– set_vital(vital, value) for V & P.
-VALID commands (these are what the frontend will actually execute):
-– sf-insert-hpi({ text })
-– sf-insert-extended-hpi({ text })
-– sf-insert-psfhros({ conditionsToSelect: string[] })
-– sf-insert-exam({ text })
-– sf-insert-diagnostics({ text })
-– sf-insert-impplan({ text })
-– sf-insert-followup({ text })
-Do not invent any other command names.
-For each PlanItem, set target_section and optionally subsection, include one or more actions, and the exact list of commands to run.
-Map medical problems to the right section; for example, "history of Diverticulosis" belongs in PSFH/ROS → PMHx.
-Do not invent facts that are not present in the input.
-If you are uncertain, include an explanatory warning in Plan.warnings and set the relevant PlanItem.selected to false.
-Always respond with a single JSON object, no explanation, no markdown.`;
+
+Output ONLY valid JSON matching this exact structure:
+{
+  "source": "speech" or "text",
+  "raw_input": "the original user input",
+  "items": [
+    {
+      "target_section": "one of: History, PSFH/ROS, V & P, Exam, Diagnostics, Imp/Plan, Follow Up",
+      "subsection": "optional: CC, HPI, Extended HPI, Mental Status Exam, or PMHx",
+      "selected": true,
+      "actions": [{"type": "add_condition", "condition": "condition name"}],
+      "commands": [
+        {"name": "command-name", "params": {"key": "value"}}
+      ]
+    }
+  ]
+}
+
+VALID COMMANDS (exact format required):
+- {"name": "sf-insert-hpi", "params": {"text": "string"}}
+- {"name": "sf-insert-extended-hpi", "params": {"text": "string"}}
+- {"name": "sf-insert-psfhros", "params": {"conditionsToSelect": ["array", "of", "strings"]}}
+- {"name": "sf-insert-exam", "params": {"text": "string"}}
+- {"name": "sf-insert-diagnostics", "params": {"text": "string"}}
+- {"name": "sf-insert-impplan", "params": {"text": "string"}}
+- {"name": "sf-insert-followup", "params": {"text": "string"}}
+
+IMPORTANT: Commands MUST be objects with "name" and "params" properties, NOT strings or function calls.
+
+Example for "Patient has history of Diverticulosis":
+{
+  "source": "text",
+  "raw_input": "Patient has history of Diverticulosis",
+  "items": [{
+    "target_section": "PSFH/ROS",
+    "subsection": "PMHx",
+    "selected": true,
+    "actions": [{"type": "add_condition", "condition": "Diverticulosis"}],
+    "commands": [{"name": "sf-insert-psfhros", "params": {"conditionsToSelect": ["Diverticulosis"]}}]
+  }]
+}
+
+Map medical problems to the right section; for example, "history of X" belongs in PSFH/ROS → PMHx.
+Do not invent facts. Only output valid JSON, no markdown, no explanation.`;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('SightFlow AI: Sidebar loaded');
   await loadAPIKey();
+  await checkMicrophonePermission();
   setupEventListeners();
 });
+
+// Check microphone permission on load
+async function checkMicrophonePermission() {
+  try {
+    const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+    console.log('SightFlow: Initial microphone permission state:', permissionStatus.state);
+    
+    if (permissionStatus.state === 'prompt' || permissionStatus.state === 'denied') {
+      // Show the permission request button
+      requestMicButton.style.display = 'block';
+    }
+    
+    // Listen for permission changes
+    permissionStatus.addEventListener('change', () => {
+      console.log('SightFlow: Microphone permission changed to:', permissionStatus.state);
+      if (permissionStatus.state === 'granted') {
+        requestMicButton.style.display = 'none';
+      }
+    });
+  } catch (error) {
+    console.log('SightFlow: Could not check microphone permission:', error);
+  }
+}
 
 // Load API key from chrome.storage.sync
 async function loadAPIKey() {
@@ -64,10 +111,57 @@ async function loadAPIKey() {
 
 // Setup event listeners
 function setupEventListeners() {
+  requestMicButton.addEventListener('click', requestMicrophonePermission);
   listenButton.addEventListener('click', toggleRecording);
   inputTextarea.addEventListener('input', updateSendButtonState);
   sendToAIButton.addEventListener('click', sendToAI);
   executePlanButton.addEventListener('click', executePlan);
+}
+
+// Request microphone permission
+async function requestMicrophonePermission() {
+  try {
+    showStatus('Opening permission page in new tab...', 'success');
+    
+    // Open in a new tab (more reliable than popup)
+    const permissionUrl = chrome.runtime.getURL('popup_mic_permission.html');
+    console.log('SightFlow: Opening permission page:', permissionUrl);
+    
+    chrome.tabs.create({ url: permissionUrl, active: true }, (tab) => {
+      console.log('SightFlow: Permission tab created:', tab);
+      
+      // Make sure the tab is focused
+      chrome.windows.update(tab.windowId, { focused: true });
+      
+      // Check periodically if permission was granted
+      const checkInterval = setInterval(async () => {
+        try {
+          const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+          console.log('SightFlow: Checking permission state:', permissionStatus.state);
+          
+          if (permissionStatus.state === 'granted') {
+            clearInterval(checkInterval);
+            showStatus('✓ Microphone permission granted!', 'success');
+            requestMicButton.style.display = 'none';
+            
+            // Close the permission tab
+            chrome.tabs.remove(tab.id);
+          }
+        } catch (e) {
+          console.log('Could not check permission state:', e);
+        }
+      }, 500);
+      
+      // Stop checking after 30 seconds
+      setTimeout(() => {
+        clearInterval(checkInterval);
+      }, 30000);
+    });
+    
+  } catch (error) {
+    console.error('SightFlow: Failed to open permission page:', error);
+    showStatus('⚠️ Failed to open permission page', 'error');
+  }
 }
 
 // Toggle recording
@@ -87,6 +181,20 @@ async function startRecording() {
       throw new Error('MediaDevices API not supported');
     }
 
+    console.log('SightFlow: Requesting microphone access...');
+    
+    // First, check if we can query the permission state
+    try {
+      const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+      console.log('SightFlow: Current microphone permission state:', permissionStatus.state);
+      
+      if (permissionStatus.state === 'denied') {
+        throw new Error('Microphone permission was denied. Please enable it in chrome://settings/content/microphone');
+      }
+    } catch (permError) {
+      console.log('SightFlow: Could not query permission state:', permError);
+    }
+
     const stream = await navigator.mediaDevices.getUserMedia({ 
       audio: {
         echoCancellation: true,
@@ -94,6 +202,8 @@ async function startRecording() {
         sampleRate: 44100
       } 
     });
+    
+    console.log('SightFlow: Microphone access granted!');
     
     mediaRecorder = new MediaRecorder(stream);
     audioChunks = [];
@@ -119,7 +229,12 @@ async function startRecording() {
     let errorMsg = 'Microphone access denied';
     
     if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-      errorMsg = 'Please allow microphone access in your browser settings';
+      if (error.message.includes('dismissed')) {
+        errorMsg = '⚠️ Please click ALLOW when Chrome asks for microphone access';
+        requestMicButton.style.display = 'block';
+      } else {
+        errorMsg = 'Please allow microphone access in your browser settings';
+      }
     } else if (error.name === 'NotFoundError') {
       errorMsg = 'No microphone found';
     }
@@ -207,17 +322,22 @@ async function sendToAI() {
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: inputText }
         ],
-        temperature: 0,
         response_format: { type: 'json_object' }
       })
     });
 
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      const errorData = await response.json().catch(() => null);
+      console.error('API error response:', errorData);
+      const errorMsg = errorData?.error?.message || `HTTP ${response.status}`;
+      throw new Error(errorMsg);
     }
 
     const data = await response.json();
+    console.log('AI response:', data);
+    
     const planJson = JSON.parse(data.choices[0].message.content);
+    console.log('Parsed plan:', planJson);
     
     // Set source and raw_input if not present
     planJson.source = planJson.source || 'text';
@@ -235,7 +355,7 @@ async function sendToAI() {
     showStatus('Plan generated successfully', 'success');
   } catch (error) {
     console.error('AI generation error:', error);
-    showStatus('Failed to generate plan', 'error');
+    showStatus(`Failed: ${error.message}`, 'error');
   } finally {
     sendToAIButton.disabled = false;
   }
@@ -366,14 +486,20 @@ async function executePlan() {
     }
 
     // Send message to content script
+    console.log('Sending plan to content script:', selectedItems);
+    
     chrome.tabs.sendMessage(tab.id, {
       type: 'EXECUTE_PLAN',
       items: selectedItems
     }, (response) => {
       if (chrome.runtime.lastError) {
-        console.error('Error:', chrome.runtime.lastError);
-        showStatus('Failed to execute plan', 'error');
+        console.error('Chrome runtime error:', chrome.runtime.lastError);
+        showStatus(`Failed: ${chrome.runtime.lastError.message}`, 'error');
+      } else if (response && !response.success) {
+        console.error('Content script error:', response.error);
+        showStatus(`Failed: ${response.error}`, 'error');
       } else {
+        console.log('Plan executed successfully:', response);
         showStatus('Plan sent to Nextech!', 'success');
         // Clear the plan after successful execution
         currentPlan = null;
