@@ -21,253 +21,296 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 });
 
-// Execute plan items
+// Execute plan items - batched by section for efficiency
 async function executePlanItems(items) {
   console.log(`SightFlow Plan Executor: Starting execution of ${items.length} item(s)`);
   
+  // Group items by section to minimize open/close cycles
+  const itemsBySection = {};
+  
   for (const item of items) {
-    console.log(`SightFlow: Executing item for ${item.target_section}`, item);
-    console.log(`SightFlow: Item has ${item.commands?.length || 0} command(s)`);
-    
-    if (!item.commands || item.commands.length === 0) {
-      console.warn('SightFlow: No commands to execute for this item');
-      continue;
+    const section = item.target_section;
+    if (!itemsBySection[section]) {
+      itemsBySection[section] = [];
     }
-    
-    for (const command of item.commands) {
-      console.log('SightFlow: Executing command:', command);
-      await executeCommand(command);
-      await wait(500); // Small delay between commands
-    }
+    itemsBySection[section].push(item);
+  }
+  
+  console.log('SightFlow: Grouped items by section:', Object.keys(itemsBySection));
+  
+  // Execute each section's items together
+  for (const [section, sectionItems] of Object.entries(itemsBySection)) {
+    console.log(`\nSightFlow: Processing section: ${section} with ${sectionItems.length} item(s)`);
+    await executeSectionItems(section, sectionItems);
   }
   
   console.log('SightFlow Plan Executor: Execution complete');
 }
 
-// Execute a single command
-async function executeCommand(command) {
-  console.log('SightFlow: Executing command:', JSON.stringify(command));
+// Execute all items for a specific section
+async function executeSectionItems(section, items) {
+  // Collect all commands from all items in this section
+  const allCommands = [];
   
-  // Normalize command format - handle both 'name'/'params' and 'command'/'args'
-  const commandName = command.name || command.command;
-  const commandParams = command.params || command.args;
+  for (const item of items) {
+    if (item.commands && item.commands.length > 0) {
+      allCommands.push(...item.commands);
+    }
+  }
   
-  if (!commandName) {
-    console.error('SightFlow: Invalid command - no name/command property', command);
+  if (allCommands.length === 0) {
+    console.warn(`SightFlow: No commands to execute for section ${section}`);
     return;
   }
   
-  console.log(`SightFlow: Command name: "${commandName}"`);
+  console.log(`SightFlow: Executing ${allCommands.length} command(s) for ${section}`);
   
-  switch (commandName) {
-    case 'sf-insert-hpi':
-      console.log('SightFlow: Calling insertHPI with:', commandParams);
-      await insertHPI(commandParams.text);
+  // Execute commands based on section type
+  switch (section) {
+    case 'History':
+      await executeHistoryCommands(allCommands);
       break;
       
-    case 'sf-insert-extended-hpi':
-      console.log('SightFlow: Calling insertExtendedHPI with:', commandParams);
-      await insertExtendedHPI(commandParams.text);
+    case 'PSFH/ROS':
+      await executePSFHROSCommands(allCommands);
       break;
       
-    case 'sf-insert-psfhros':
-      console.log('SightFlow: Calling insertPSFHROS with:', commandParams.conditionsToSelect);
-      await insertPSFHROS(commandParams.conditionsToSelect);
+    case 'Exam':
+      await executeExamCommands(allCommands);
       break;
       
-    case 'sf-insert-exam':
-      console.log('SightFlow: Calling insertExam with:', commandParams);
-      await insertExam(commandParams.text);
+    case 'Diagnostics':
+      await executeDiagnosticsCommands(allCommands);
       break;
       
-    case 'sf-insert-diagnostics':
-      console.log('SightFlow: Calling insertDiagnostics with:', commandParams);
-      await insertDiagnostics(commandParams.text);
+    case 'Imp/Plan':
+      await executeImpPlanCommands(allCommands);
       break;
       
-    case 'sf-insert-impplan':
-      console.log('SightFlow: Calling insertImpPlan with:', commandParams);
-      await insertImpPlan(commandParams.text);
-      break;
-      
-    case 'sf-insert-followup':
-      console.log('SightFlow: Calling insertFollowUp with:', commandParams);
-      await insertFollowUp(commandParams.text);
+    case 'Follow Up':
+      await executeFollowUpCommands(allCommands);
       break;
       
     default:
-      console.warn('SightFlow: Unknown command name:', commandName);
+      console.warn(`SightFlow: Unknown section: ${section}`);
   }
-  
-  console.log(`SightFlow: Finished executing command: ${commandName}`);
 }
 
-// Command implementations
-async function insertHPI(text) {
+// Execute all History section commands in one open/close cycle
+async function executeHistoryCommands(commands) {
+  console.log('SightFlow: Opening History section for batch execution');
   collapse();
   expandByID('#hpiCC');
   await wait(500);
   
-  const textarea = clickTextAreaWithinSection('chart-hpi');
-  if (textarea) {
-    setAngularValue(textarea, text);
+  let needsMentalStatus = false;
+  const textContents = [];
+  
+  // Process all commands to determine what we need
+  for (const command of commands) {
+    const commandName = command.name || command.command;
+    const commandParams = command.params || command.args;
+    
+    if (!commandName) continue;
+    
+    switch (commandName) {
+      case 'sf-insert-hpi':
+      case 'sf-insert-extended-hpi':
+        if (commandParams.text) {
+          textContents.push(commandParams.text);
+        }
+        break;
+        
+      case 'sf-insert-mental-status':
+        needsMentalStatus = true;
+        if (commandParams.text) {
+          textContents.push(commandParams.text);
+        }
+        break;
+    }
+  }
+  
+  // Check mental status checkbox if needed
+  if (needsMentalStatus) {
+    console.log('SightFlow: Checking Mental Status Exam checkbox');
+    checkCheckboxByLabel('Mental Status Exam');
+    await wait(500); // Wait for UI to update
+  }
+  
+  // Insert all text content
+  if (textContents.length > 0) {
+    const combinedText = textContents.join(' ');
+    console.log('SightFlow: Inserting combined text:', combinedText);
+    const textarea = clickTextAreaWithinSection('chart-hpi');
+    if (textarea) {
+      setAngularValue(textarea, combinedText);
+    }
   }
   
   collapse();
+  console.log('SightFlow: History section batch execution complete');
 }
 
-async function insertExtendedHPI(text) {
-  collapse();
-  expandByID('#hpiCC');
-  await wait(500);
+// Execute all PSFH/ROS section commands in one open/close cycle
+async function executePSFHROSCommands(commands) {
+  console.log('SightFlow: Opening PSFH/ROS section for batch execution');
   
-  const textarea = clickTextAreaWithinSection('chart-hpi');
-  if (textarea) {
-    setAngularValue(textarea, text);
-  }
-  
-  checkCheckboxByLabel('Mental Status Exam');
-  collapse();
-}
-
-async function insertPSFHROS(conditions) {
-  // Use existing PSFHROS logic by sending a message that will be handled by psfhros_input.js
-  console.log('SightFlow: Sending INSERT_PSFHROS message with conditions:', conditions);
-  
-  // Get patient context 
   const ctx = getContext();
-
-  // STEP 1: Make sure relevant section is collapsed before starting
   collapse();
-  
-  // STEP 2: Expand the PSFHROS section
   expandByID('#pmHx');
   await wait();
-
-  // STEP 3: Extract all available titles from a scrollable div within a parent element
+  
   const availableTitles = extractTitlesFromScrollable('chart-medical-hx', '300px');
-
-  // STEP 4: Click PMH problems by Title (only if they exist in the list), otherwise free type the condition(s)
-  for (const condition of conditions) {
-    // Search for the condition, ignoring leading/trailing whitespace
+  
+  // Collect all conditions from all commands
+  const allConditions = [];
+  for (const command of commands) {
+    const commandName = command.name || command.command;
+    const commandParams = command.params || command.args;
+    
+    if (commandName === 'sf-insert-psfhros' && commandParams.conditionsToSelect) {
+      allConditions.push(...commandParams.conditionsToSelect);
+    }
+  }
+  
+  // Process all conditions
+  for (const condition of allConditions) {
     const matchedTitle = availableTitles.find(title => 
       title.trim().toLowerCase() === condition.trim().toLowerCase()
     );
     
     if (matchedTitle) {
       console.log(`SightFlow: "${condition}" found as "${matchedTitle}", clicking...`);
-      clickElementByTitle(matchedTitle); // Use the original title with whitespace
+      clickElementByTitle(matchedTitle);
     } else {
       console.log(`SightFlow: "${condition}" is NOT available in the list, free-texting it...`);
-      
-      // First need to click on the specific medical history Add button 
       clickAddButtonWithinSection('chart-medical-hx');
-
-      // Try to find the free text input field
       const textInput = findInputBox('chart-medical-hx');
       
       if (textInput) {
-        console.log('SightFlow: clicking...');
         textInput.click();
-        console.log("SightFlow: Clicked input box within section. Free typing...");
-        // Type the condition using setAngularValue
         setAngularValue(textInput, condition);
-        console.log("SightFlow: Text inserted into input box and event dispatched.");
-      } else {
-        console.log(`SightFlow: Could not find the input field for "${condition}"`);
       }
     }
   }
-
-  // STEP 5: collapse to save
+  
   collapse();
+  console.log('SightFlow: PSFH/ROS section batch execution complete');
 }
 
-async function insertExam(text) {
+// Execute all Exam section commands in one open/close cycle
+async function executeExamCommands(commands) {
+  console.log('SightFlow: Opening Exam section for batch execution');
   collapse();
-  expandByID('#exam'); // TODO: Update with correct selector from Nextech DOM inspection
+  expandByID('#exam');
   await wait(500);
   
-  const textarea = clickTextAreaWithinSection('chart-exam');
-  if (textarea) {
-    setAngularValue(textarea, text);
-  }
-  
-  collapse();
-}
-
-async function insertDiagnostics(text) {
-  collapse();
-  expandByID('#diagnostics'); // TODO: Update with correct selector from Nextech DOM inspection
-  await wait(500);
-  
-  const textarea = clickTextAreaWithinSection('chart-diagnostics');
-  if (textarea) {
-    setAngularValue(textarea, text);
-  }
-  
-  collapse();
-}
-
-async function insertImpPlan(text) {
-  collapse();
-  expandByID('#impPlan'); // TODO: Update with correct selector from Nextech DOM inspection
-  await wait(500);
-  
-  const textarea = clickTextAreaWithinSection('chart-imp-plan');
-  if (textarea) {
-    setAngularValue(textarea, text);
-  }
-  
-  collapse();
-}
-
-async function insertFollowUp(text) {
-  collapse();
-  expandByID('#followUp'); // TODO: Update with correct selector from Nextech DOM inspection
-  await wait(500);
-  
-  const textarea = clickTextAreaWithinSection('chart-follow-up');
-  if (textarea) {
-    setAngularValue(textarea, text);
-  }
-  
-  collapse();
-}
-
-// Handle section focus messages (for keyboard shortcuts)
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg?.type === 'FOCUS_SECTION') {
-    console.log('SightFlow: Focusing section', msg.section);
+  const textContents = [];
+  for (const command of commands) {
+    const commandName = command.name || command.command;
+    const commandParams = command.params || command.args;
     
-    // Handle async execution
-    (async () => {
-      try {
-        switch (msg.section) {
-          case 'History':
-            collapse();
-            expandByID('#hpiCC');
-            await wait(500);
-            const historyTextarea = clickTextAreaWithinSection('chart-hpi');
-            if (historyTextarea) historyTextarea.focus();
-            break;
-            
-          case 'PSFH/ROS':
-            collapse();
-            expandByID('#pmHx');
-            await wait(500);
-            break;
-            
-          default:
-            console.warn('Unknown section:', msg.section);
-        }
-        sendResponse({ success: true });
-      } catch (error) {
-        console.error('SightFlow: Error focusing section', error);
-        sendResponse({ success: false, error: error.message });
-      }
-    })();
-    
-    return true; // Keep message channel open for async response
+    if (commandName === 'sf-insert-exam' && commandParams.text) {
+      textContents.push(commandParams.text);
+    }
   }
-});
+  
+  if (textContents.length > 0) {
+    const combinedText = textContents.join(' ');
+    const textarea = clickTextAreaWithinSection('chart-exam');
+    if (textarea) {
+      setAngularValue(textarea, combinedText);
+    }
+  }
+  
+  collapse();
+  console.log('SightFlow: Exam section batch execution complete');
+}
+
+// Execute all Diagnostics section commands in one open/close cycle
+async function executeDiagnosticsCommands(commands) {
+  console.log('SightFlow: Opening Diagnostics section for batch execution');
+  collapse();
+  expandByID('#diagnostics');
+  await wait(500);
+  
+  const textContents = [];
+  for (const command of commands) {
+    const commandName = command.name || command.command;
+    const commandParams = command.params || command.args;
+    
+    if (commandName === 'sf-insert-diagnostics' && commandParams.text) {
+      textContents.push(commandParams.text);
+    }
+  }
+  
+  if (textContents.length > 0) {
+    const combinedText = textContents.join(' ');
+    const textarea = clickTextAreaWithinSection('chart-diagnostics');
+    if (textarea) {
+      setAngularValue(textarea, combinedText);
+    }
+  }
+  
+  collapse();
+  console.log('SightFlow: Diagnostics section batch execution complete');
+}
+
+// Execute all Imp/Plan section commands in one open/close cycle
+async function executeImpPlanCommands(commands) {
+  console.log('SightFlow: Opening Imp/Plan section for batch execution');
+  collapse();
+  expandByID('#impPlan');
+  await wait(500);
+  
+  const textContents = [];
+  for (const command of commands) {
+    const commandName = command.name || command.command;
+    const commandParams = command.params || command.args;
+    
+    if (commandName === 'sf-insert-impplan' && commandParams.text) {
+      textContents.push(commandParams.text);
+    }
+  }
+  
+  if (textContents.length > 0) {
+    const combinedText = textContents.join(' ');
+    const textarea = clickTextAreaWithinSection('chart-imp-plan');
+    if (textarea) {
+      setAngularValue(textarea, combinedText);
+    }
+  }
+  
+  collapse();
+  console.log('SightFlow: Imp/Plan section batch execution complete');
+}
+
+// Execute all Follow Up section commands in one open/close cycle
+async function executeFollowUpCommands(commands) {
+  console.log('SightFlow: Opening Follow Up section for batch execution');
+  collapse();
+  expandByID('#followUp');
+  await wait(500);
+  
+  const textContents = [];
+  for (const command of commands) {
+    const commandName = command.name || command.command;
+    const commandParams = command.params || command.args;
+    
+    if (commandName === 'sf-insert-followup' && commandParams.text) {
+      textContents.push(commandParams.text);
+    }
+  }
+  
+  if (textContents.length > 0) {
+    const combinedText = textContents.join(' ');
+    const textarea = clickTextAreaWithinSection('chart-follow-up');
+    if (textarea) {
+      setAngularValue(textarea, combinedText);
+    }
+  }
+  
+  collapse();
+  console.log('SightFlow: Follow Up section batch execution complete');
+}
+

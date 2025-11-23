@@ -42,6 +42,7 @@ Output ONLY valid JSON matching this exact structure:
 VALID COMMANDS (exact format required):
 - {"name": "sf-insert-hpi", "params": {"text": "string"}}
 - {"name": "sf-insert-extended-hpi", "params": {"text": "string"}}
+- {"name": "sf-insert-mental-status", "params": {"text": "string"}}
 - {"name": "sf-insert-psfhros", "params": {"conditionsToSelect": ["array", "of", "strings"]}}
 - {"name": "sf-insert-exam", "params": {"text": "string"}}
 - {"name": "sf-insert-diagnostics", "params": {"text": "string"}}
@@ -49,6 +50,20 @@ VALID COMMANDS (exact format required):
 - {"name": "sf-insert-followup", "params": {"text": "string"}}
 
 IMPORTANT: Commands MUST be objects with "name" and "params" properties, NOT strings or function calls.
+
+SECTION MAPPING RULES:
+1. Chief complaints (flashes, floaters, blurred vision, pain, etc.) → History section, HPI subsection
+2. Mental status descriptions (awake, alert, oriented, responsive, consciousness level) → History section, Mental Status Exam subsection, use sf-insert-extended-hpi command
+3. Physical exam findings (pupils, reflexes, cardiac exam, lung sounds) → Exam section
+4. Past medical history → PSFH/ROS section, PMHx subsection
+5. Diagnostic tests/results → Diagnostics section
+6. Assessment and treatment plans → Imp/Plan section
+7. Follow-up instructions → Follow Up section
+
+CRITICAL: Mental status exam information (e.g., "awake, aware, oriented times three", "alert and oriented", "responsive") MUST go to:
+- target_section: "History"
+- subsection: "Mental Status Exam"
+- command: sf-insert-mental-status
 
 Example for "Patient has history of Diverticulosis":
 {
@@ -63,7 +78,19 @@ Example for "Patient has history of Diverticulosis":
   }]
 }
 
-Map medical problems to the right section; for example, "history of X" belongs in PSFH/ROS → PMHx.
+Example for mental status: "Patient is awake, aware, and oriented times three":
+{
+  "source": "text",
+  "raw_input": "Patient is awake, aware, and oriented times three",
+  "items": [{
+    "target_section": "History",
+    "subsection": "Mental Status Exam",
+    "selected": true,
+    "actions": [{"type": "insert_text", "field": "Mental Status Exam", "value": "Patient is awake, aware, and oriented times three."}],
+    "commands": [{"name": "sf-insert-mental-status", "params": {"text": "Patient is awake, aware, and oriented times three."}}]
+  }]
+}
+
 Do not invent facts. Only output valid JSON, no markdown, no explanation.`;
 
 // Initialize

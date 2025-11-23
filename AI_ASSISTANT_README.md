@@ -31,10 +31,6 @@ SightFlow AI Assistant is a Chrome extension that adds intelligent voice-to-text
 - "Send ALL to Nextech" button flashes when items are selected
 - Executes only selected items when clicked
 
-### 5. Keyboard Shortcuts
-- **Alt+Shift+H**: Focus/open History section
-- **Alt+Shift+M**: Focus/open PSFH/ROS section
-
 ## Setup
 
 ### 1. Install Extension

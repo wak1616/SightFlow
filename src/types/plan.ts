@@ -32,6 +32,7 @@ export type Action =
 export type Command =
   | { name: "sf-insert-hpi"; params: { text: string } }
   | { name: "sf-insert-extended-hpi"; params: { text: string } }
+  | { name: "sf-insert-mental-status"; params: { text: string } }
   | { name: "sf-insert-psfhros"; params: { conditionsToSelect: string[] } }
   | { name: "sf-insert-exam"; params: { text: string } }
   | { name: "sf-insert-diagnostics"; params: { text: string } }

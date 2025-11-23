@@ -150,10 +150,6 @@ When user says or types: "patient has a history of Diverticulosis"
    - Open the SightFlow side panel (click the extension icon)
    - Try the test cases above
 
-4. **Keyboard Shortcuts**
-   - Alt+Shift+H → Focus/open History section
-   - Alt+Shift+M → Focus/open PSFH/ROS section
-
 ## Debugging Tips
 
 - Open Chrome DevTools (F12) to see console logs

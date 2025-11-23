@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "manifest_version": 3,
   "description": "AI-powered EMR assistant with speech-to-text and intelligent plan generation for Nextech",
-  "permissions": ["activeTab", "commands", "sidePanel", "storage", "audioCapture", "tabs"],
+  "permissions": ["activeTab", "sidePanel", "storage", "audioCapture", "tabs"],
   "host_permissions": ["https://app1.intellechart.net/*"],
   "action": {
     "default_title": "SightFlow AI Assistant"
@@ -19,22 +19,10 @@
   },
   "background": { "service_worker": "background.js" },
   "options_page": "options.html",
-  "commands": {
-    "sf-insert-hpi": { 
-      "suggested_key": { "default": "Alt+Shift+H" }, 
-      "description": "Focus/open History section" 
-    },
-    "sf-insert-psfhros": { 
-      "suggested_key": { "default": "Alt+Shift+M" }, 
-      "description": "Focus/open PSFH/ROS section" 
-    }
-  },
   "content_scripts": [
     {
       "js": [
-        "scripts/shared_utils.js", 
-        "scripts/history_input.js", 
-        "scripts/psfhros_input.js",
+        "scripts/shared_utils.js",
         "scripts/plan_executor.js"
       ],
       "matches": ["https://app1.intellechart.net/Eye2MVC/Chart/Chart/Index/"],

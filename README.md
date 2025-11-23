@@ -1,17 +1,16 @@
-# SightFlow Nextech Helper
+# SightFlow AI Assistant
 
-A Chrome extension that helps streamline workflow in Intellechart by providing keyboard shortcuts and a convenient sidebar to insert text into HPI (History of Present Illness) fields and select PMH elements.
+A Chrome extension that adds intelligent voice-to-text and AI-powered plan generation to Nextech EMR. It uses OpenAI's gpt-4o-transcribe for speech recognition and gpt-5-mini for generating structured medical charting plans.
 
 ## Features
 
-- **Sidebar Interface**: Beautiful side panel with buttons for quick actions
-- **Keyboard Shortcuts**: 
-  - Press `Alt+Shift+H` to insert text into the Extended HPI textarea
-  - Press `Alt+Shift+M` to select PMH (Past Medical History) elements
-- **Smart Field Detection**: Automatically finds and expands the HPI section if needed
-- **Patient Context Awareness**: Gathers patient context for processing
-- **Angular-Compatible**: Properly triggers change detection for Angular-based forms
-- **Modern UI**: Aesthetically pleasing interface with the SightFlow logo
+- **🎤 Speech-to-Text**: Record voice notes that are automatically transcribed using OpenAI's gpt-4o-transcribe model
+- **📝 Manual Text Input**: Type notes directly into the text area
+- **🤖 AI Plan Generation**: Converts natural language into structured EMR changes using gpt-5-mini
+- **✅ Plan Review**: Review and selectively apply AI-generated changes
+- **🎯 Visual Indicators**: See which EMR sections have pending changes
+- **⚡ One-Click Execution**: Apply all selected changes to Nextech with one button
+- **🔒 Secure**: API keys stored locally in Chrome sync storage
 
 ## Installation
 
@@ -21,53 +20,102 @@ A Chrome extension that helps streamline workflow in Intellechart by providing k
 4. Click "Load unpacked" and select the extension directory
 5. The extension should now be active on Intellechart pages
 
+## Setup
+
+### Configure OpenAI API Key
+
+1. Right-click the SightFlow extension icon
+2. Select "Options" or "Settings"
+3. Enter your OpenAI API key
+4. Click "Save Settings"
+
+Your API key is stored securely in Chrome's sync storage and never shared.
+
 ## Usage
 
-### Using the Sidebar (Recommended)
+### Using the AI Assistant
 
-1. Navigate to a patient chart in Intellechart (https://app1.intellechart.net/*)
-2. Click the SightFlow extension icon and open the side panel
-3. Use the action buttons:
-   - **Insert HPI** button - Inserts HPI text (equivalent to Alt+Shift+H)
-   - **Select PMH** button - Selects PMH elements (equivalent to Alt+Shift+M)
-4. Status messages will appear to confirm the action
+1. Navigate to a patient chart in Nextech EMR (https://app1.intellechart.net/Eye2MVC/Chart/Chart/Index/)
+2. Click the SightFlow extension icon to open the side panel
+3. Choose your input method:
+   - **Voice**: Click "Listen" → speak your notes → click "Stop"
+   - **Text**: Type directly into the text area
+4. Click "Send to AI" to generate a structured plan
+5. Review the plan items (each has a checkbox)
+6. Click "Send ALL to Nextech" to apply selected changes
 
-### Using Keyboard Shortcuts
+### Example
 
-1. Navigate to a patient chart in Intellechart (https://app1.intellechart.net/*)
-2. Press `Alt+Shift+H` to trigger the HPI insertion
-3. Press `Alt+Shift+M` to trigger the PMH selection
-4. The actions will execute automatically
+**Input**: "Patient has a history of diverticulosis"
+
+**Result**: The AI will:
+- Generate a plan to add Diverticulosis to Past Medical History
+- Highlight the PSFH/ROS section in green
+- Show a preview card with the change
+- Apply the change when you click "Send ALL to Nextech"
+
+## EMR Sections Supported
+
+- **History**: CC, HPI, Extended HPI, Mental Status Exam
+- **PSFH/ROS**: Past Medical History (PMHx)
+- **V & P**: Vitals and Physical
+- **Exam**: Physical Examination
+- **Diagnostics**: Diagnostic findings
+- **Imp/Plan**: Impression and Plan
+- **Follow Up**: Follow-up instructions
 
 ## Files
 
-- `manifest.json` - Extension configuration and permissions
-- `background.js` - Background service worker handling keyboard shortcuts and sidebar messages
-- `scripts/history_input.js` - Content script for HPI insertion
-- `scripts/psfhros_input.js` - Content script for PMH selection
-- `scripts/shared_utils.js` - Shared utility functions
-- `sidebar/sidebar.html` - Sidebar interface
-- `sidebar/sidebar.css` - Sidebar styling
-- `sidebar/sidebar.js` - Sidebar functionality
-
-## Customization
-
-To change the text being inserted, edit the `text` property in the `chrome.tabs.sendMessage` call in `background.js` (line 13).
+- `manifest.json` - Extension configuration
+- `background.js` - Background service worker
+- `options.html/js` - Settings page for API key
+- `sidebar/` - AI assistant interface
+  - `sidebar.html` - UI structure
+  - `sidebar.css` - Styling
+  - `sidebar.js` - Main logic (speech-to-text, AI integration)
+- `scripts/` - Content scripts for Nextech integration
+  - `shared_utils.js` - Shared utility functions
+  - `history_input.js` - History section handler
+  - `psfhros_input.js` - PSFH/ROS handler
+  - `plan_executor.js` - AI plan executor
+- `src/types/plan.ts` - TypeScript type definitions (documentation)
 
 ## Permissions
 
-- `scripting` - Required to inject content scripts
 - `activeTab` - Access to the currently active tab
-- `storage` - For potential future features requiring data storage
+- `sidePanel` - Display the AI assistant in the side panel
+- `storage` - Store API key securely
+- `audioCapture` - Record voice for speech-to-text
+- `tabs` - Manage tabs for permission prompts
 - `host_permissions` - Limited to `app1.intellechart.net` domain
 
 ## Development
 
-This extension uses Manifest V3 and is compatible with modern Chrome/Chromium browsers.
+This extension uses:
+- Manifest V3
+- Vanilla JavaScript (no build step required)
+- OpenAI API (gpt-4o-transcribe for transcription, gpt-5-mini for plan generation)
+- Chrome Side Panel API
 
 ## Version
 
-Current version: 0.1.0
+Current version: 0.2.0
+
+## Troubleshooting
+
+**Microphone not working:**
+- Check browser permissions
+- Click the orange "Grant Microphone Permission" button
+- Ensure you're on HTTPS
+
+**API errors:**
+- Verify your API key in settings
+- Check OpenAI API status
+
+**Commands not executing:**
+- Ensure you're on the correct Nextech page
+- Reload the page and extension
+- Check browser console for errors
 
 ## License
 

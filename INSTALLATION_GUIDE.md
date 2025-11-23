@@ -30,11 +30,13 @@ Since you've added new files (sidebar), you need to reload the extension:
 The sidebar includes:
 - **SightFlow Logo** (128x128 icon) at the top
 - **Gradient Header** with app name and subtitle
-- **Two Action Buttons**:
-  - 📝 Insert HPI (Alt+Shift+H)
-  - 🔍 Select PMH (Alt+Shift+M)
+- **AI Assistant Interface**:
+  - 🎤 Voice input with speech-to-text
+  - 📝 Text input for manual entry
+  - 🤖 AI-powered plan generation
+  - ✅ Plan review and execution
 - **Status Messages** showing success/error feedback
-- **Version Number** at the bottom (v0.1.0)
+- **Version Number** at the bottom (v0.2.0)
 
 ## 🧪 Testing the Sidebar
 
@@ -55,17 +57,16 @@ The sidebar includes:
 ### Test 3: Full Functionality (On Intellechart)
 1. Navigate to: `https://app1.intellechart.net/Eye2MVC/Chart/Chart/Index/`
 2. Open a patient chart
-3. Click "Insert HPI" button
-   - Should trigger the HPI insertion workflow
-   - Status should show success
-4. Click "Select PMH" button
-   - Should trigger the PMH selection workflow
-   - Status should show success
-
-### Test 4: Keyboard Shortcuts Still Work
-- [ ] Alt+Shift+H still works (HPI)
-- [ ] Alt+Shift+M still works (PMH)
-- Sidebar buttons should be equivalent to keyboard shortcuts
+3. Test voice input:
+   - Click "Listen" button
+   - Say "patient has a history of diverticulosis"
+   - Click "Stop"
+   - Text should appear in the textarea
+4. Test AI plan generation:
+   - Click "Send to AI"
+   - Review the generated plan
+   - Click "Send ALL to Nextech"
+   - Verify the changes are applied to the EMR
 
 ## 🐛 Troubleshooting
 
@@ -111,11 +112,12 @@ SightFlow/
 Your sidebar is working correctly if:
 1. ✅ It opens without errors
 2. ✅ Logo is displayed prominently
-3. ✅ Both buttons are visible and styled
-4. ✅ Clicking buttons triggers the appropriate actions
-5. ✅ Status messages appear and fade out
-6. ✅ Keyboard shortcuts still work independently
-7. ✅ Design is aesthetically pleasing
+3. ✅ AI assistant interface is visible and styled properly
+4. ✅ Speech-to-text functionality works
+5. ✅ AI plan generation creates valid plans
+6. ✅ Plan execution applies changes to Nextech
+7. ✅ Status messages appear and fade out
+8. ✅ Design is aesthetically pleasing
 
-Enjoy your new SightFlow sidebar! 🎉
+Enjoy your new SightFlow AI assistant! 🎉
 
