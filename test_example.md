@@ -63,7 +63,7 @@ When user says or types: "patient has a history of Diverticulosis"
       ],
       "commands": [
         {
-          "name": "sf-insert-hpi",
+          "name": "sf-insert-extended-hpi",
           "params": {
             "text": "Patient complains of blurry vision for 6 months"
           }

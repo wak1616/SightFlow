@@ -40,7 +40,7 @@ Output ONLY valid JSON matching this exact structure:
 }
 
 VALID COMMANDS (exact format required):
-- {"name": "sf-insert-hpi", "params": {"text": "string"}}
+- {"name": "sf-insert-CCs", "params": {"finding": "string", "location": "string (optional, e.g. OD, OS, OU)"}}
 - {"name": "sf-insert-extended-hpi", "params": {"text": "string"}}
 - {"name": "sf-insert-mental-status", "params": {"text": "string"}}
 - {"name": "sf-insert-psfhros", "params": {"conditionsToSelect": ["array", "of", "strings"]}}
@@ -52,8 +52,8 @@ VALID COMMANDS (exact format required):
 IMPORTANT: Commands MUST be objects with "name" and "params" properties, NOT strings or function calls.
 
 SECTION MAPPING RULES:
-1. Chief complaints (flashes, floaters, blurred vision, pain, etc.) → History section, HPI subsection
-2. Mental status descriptions (awake, alert, oriented, responsive, consciousness level) → History section, Mental Status Exam subsection, use sf-insert-extended-hpi command
+1. Chief complaints (flashes, floaters, blurred vision, pain, etc.) → History section, CC subsection, use sf-insert-CCs command with finding and optional location (OD=right eye, OS=left eye, OU=both eyes)
+2. Mental status descriptions (awake, alert, oriented, responsive, consciousness level) → History section, Mental Status Exam subsection, use sf-insert-mental-status command
 3. Physical exam findings (pupils, reflexes, cardiac exam, lung sounds) → Exam section
 4. Past medical history → PSFH/ROS section, PMHx subsection
 5. Diagnostic tests/results → Diagnostics section
@@ -88,6 +88,19 @@ Example for mental status: "Patient is awake, aware, and oriented times three":
     "selected": true,
     "actions": [{"type": "insert_text", "field": "Mental Status Exam", "value": "Patient is awake, aware, and oriented times three."}],
     "commands": [{"name": "sf-insert-mental-status", "params": {"text": "Patient is awake, aware, and oriented times three."}}]
+  }]
+}
+
+Example for chief complaint: "Patient complains of blurred vision in both eyes":
+{
+  "source": "text",
+  "raw_input": "Patient complains of blurred vision in both eyes",
+  "items": [{
+    "target_section": "History",
+    "subsection": "CC",
+    "selected": true,
+    "actions": [{"type": "insert_text", "field": "CC", "value": "Blurred Vision OU"}],
+    "commands": [{"name": "sf-insert-CCs", "params": {"finding": "Blurred Vision", "location": "OU"}}]
   }]
 }
 

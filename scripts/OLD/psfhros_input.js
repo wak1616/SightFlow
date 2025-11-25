@@ -22,7 +22,7 @@ chrome.runtime.onMessage.addListener(async (msg) => {
     await wait();
   
     // STEP 3: Extract all available titles from a scrollable div within a parent element (argument = tagName of parent element)
-    const availableTitles = extractTitlesFromScrollable('chart-medical-hx', '300px');
+    const availableTitles = extractPMHxTitlesFromScrollable('chart-medical-hx', '300px');
 
     // STEP 4: Click PMH problems by Title (only if they exist in the list), otherwise free type the condition(s)
     const conditionsToSelect = ['Negative', 'Diverticulosis', 'Diabetes Type II', 'broken heart'];

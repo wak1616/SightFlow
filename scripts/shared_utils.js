@@ -112,9 +112,38 @@ function clickLocationInScrollable(location) {
     const targetChild = div.querySelector(`div[title="${location}"]`);
     if (targetChild) {
       targetChild.click();
-      return; // stop after finding the first match
+      console.log(`SightFlow: Clicked eye location: "${location}"`);
+      return true;
     }
   }
+  console.log(`SightFlow: Could not find eye location: "${location}"`);
+  return false;
+}
+
+// Click on a CC finding by matching its text content (span.hpi-finding elements)
+function clickCCFindingByText(findingText) {
+  const hpiFindingSpans = document.querySelectorAll('chart-hpi span.hpi-finding');
+  
+  for (const span of hpiFindingSpans) {
+    if (span.textContent.trim().toLowerCase() === findingText.trim().toLowerCase()) {
+      span.click();
+      console.log(`SightFlow: Clicked CC finding: "${findingText}"`);
+      return true;
+    }
+  }
+  console.log(`SightFlow: Could not find CC finding: "${findingText}"`);
+  return false;
+}
+
+// Find the findingText input for free-typing a CC
+function findCCFindingTextInput() {
+  const input = document.querySelector('chart-hpi input[name="findingText"]');
+  if (input) {
+    console.log('SightFlow: Found findingText input');
+    return input;
+  }
+  console.log('SightFlow: Could not find findingText input');
+  return null;
 }
 
 /**
@@ -181,7 +210,7 @@ function findInputBox(section) {
 }
 
 //Start with parent element, then find scrollable list and extrat titles from there.
-function extractTitlesFromScrollable(parentTagNameString, yPixels) {
+function extractPMHxTitlesFromScrollable(parentTagNameString, yPixels) {
   // Find all scrollable divs within parent, then filter by height
   const scrollableDivs = document.querySelectorAll(`${parentTagNameString} div.scrollable`);
   
@@ -204,4 +233,44 @@ function extractTitlesFromScrollable(parentTagNameString, yPixels) {
   console.log(`SightFlow: Extracted ${elements.length} titles from scrollable div`);
   const titles = Array.from(elements).map(element => element.getAttribute('title'));
   return titles;
+}
+
+//Extract CC findings and Eye Locations from scrollable lists within chart-hpi section
+function extractCCandLocationFromScrollables(yPixels = 300) {
+  const parentTagNameString = 'chart-hpi';
+  // Find all scrollable divs within chart-hpi, then filter by height
+  const scrollableDivs = document.querySelectorAll(`${parentTagNameString} div.scrollable`);
+  
+  let ccFindings = [];
+  let eyeLocations = [];
+  
+  for (const div of scrollableDivs) {
+    // Check if style attribute contains the exact height specification
+    const styleAttr = div.getAttribute('style');
+    if (styleAttr && styleAttr.includes(`height: ${yPixels}`)) {
+      // Check for CC Findings (span.hpi-finding elements)
+      const hpiFindingElements = div.querySelectorAll('span.hpi-finding');
+      if (hpiFindingElements.length > 0) {
+        ccFindings = Array.from(hpiFindingElements).map(element => element.textContent.trim());
+        const first3CC = ccFindings.slice(0, 3);
+        const last3CC = ccFindings.slice(-3);
+        console.log(`SightFlow: Extracted ${ccFindings.length} CC findings. First 3: [${first3CC.join(', ')}] | Last 3: [${last3CC.join(', ')}]`);
+      }
+      
+      // Check for Eye Locations (div[title] elements, excluding history-row-item class)
+      const titleElements = div.querySelectorAll('div[title]:not(.history-row-item)');
+      if (titleElements.length > 0 && hpiFindingElements.length === 0) {
+        eyeLocations = Array.from(titleElements).map(element => element.getAttribute('title'));
+        const first3Loc = eyeLocations.slice(0, 3);
+        const last3Loc = eyeLocations.slice(-3);
+        console.log(`SightFlow: Extracted ${eyeLocations.length} Eye Locations. First 3: [${first3Loc.join(', ')}] | Last 3: [${last3Loc.join(', ')}]`);
+      }
+    }
+  }
+  
+  if (ccFindings.length === 0 && eyeLocations.length === 0) {
+    console.log(`SightFlow: Could not find scrollable divs with height ${yPixels}px within ${parentTagNameString}`);
+  }
+  
+  return { ccFindings, eyeLocations };
 }

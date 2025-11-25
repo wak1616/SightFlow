@@ -30,7 +30,7 @@ export type Action =
   | { type: "set_vital"; vital: "BP" | "HR" | "RR" | "Temp" | "SpO2" | "Pain"; value: string };
 
 export type Command =
-  | { name: "sf-insert-hpi"; params: { text: string } }
+  | { name: "sf-insert-CCs"; params: { finding: string; location?: string } }
   | { name: "sf-insert-extended-hpi"; params: { text: string } }
   | { name: "sf-insert-mental-status"; params: { text: string } }
   | { name: "sf-insert-psfhros"; params: { conditionsToSelect: string[] } }

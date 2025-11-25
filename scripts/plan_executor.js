@@ -72,7 +72,7 @@ async function executeSectionItems(section, items) {
       break;
       
     case 'PSFH/ROS':
-      await executePSFHROSCommands(allCommands);
+      await executePMHxCommands(allCommands);
       break;
       
     case 'Exam':
@@ -103,6 +103,10 @@ async function executeHistoryCommands(commands) {
   expandByID('#hpiCC');
   await wait(500);
   
+  const { ccFindings, eyeLocations } = extractCCandLocationFromScrollables();
+  const availableCCFindings = ccFindings;
+  const availableEyeLocations = eyeLocations;
+  
   let needsMentalStatus = false;
   const textContents = [];
   
@@ -114,7 +118,6 @@ async function executeHistoryCommands(commands) {
     if (!commandName) continue;
     
     switch (commandName) {
-      case 'sf-insert-hpi':
       case 'sf-insert-extended-hpi':
         if (commandParams.text) {
           textContents.push(commandParams.text);
@@ -126,6 +129,55 @@ async function executeHistoryCommands(commands) {
         if (commandParams.text) {
           textContents.push(commandParams.text);
         }
+        break;
+        
+      case 'sf-insert-CCs':
+        // Handle CC insertion with finding and location
+        const finding = commandParams.finding;
+        const location = commandParams.location;
+        
+        if (!finding) {
+          console.log('SightFlow: sf-insert-CCs requires a finding parameter');
+          break;
+        }
+        
+        // Try to find a matching CC finding in the available list
+        const matchedFinding = availableCCFindings.find(f => 
+          f.trim().toLowerCase() === finding.trim().toLowerCase()
+        );
+        
+        if (matchedFinding) {
+          // Found in list - click on the finding
+          console.log(`SightFlow: CC finding "${finding}" found as "${matchedFinding}"`);
+          clickCCFindingByText(matchedFinding);
+          await wait(300);
+          
+          // If location provided, try to click on it
+          if (location) {
+            const matchedLocation = availableEyeLocations.find(loc => 
+              loc.trim().toLowerCase() === location.trim().toLowerCase()
+            );
+            
+            if (matchedLocation) {
+              console.log(`SightFlow: Eye location "${location}" found as "${matchedLocation}"`);
+              clickLocationInScrollable(matchedLocation);
+            } else {
+              console.log(`SightFlow: Eye location "${location}" not found in available list`);
+            }
+          }
+        } else {
+          // Not found in list - free-type into findingText input
+          console.log(`SightFlow: CC finding "${finding}" not in list, free-typing...`);
+          const ccInput = findCCFindingTextInput();
+          if (ccInput) {
+            ccInput.click();
+            await wait(200);
+            // Combine finding and location if both provided
+            const fullCC = location ? `${finding} ${location}` : finding;
+            setAngularValue(ccInput, fullCC);
+          }
+        }
+        await wait(300);
         break;
     }
   }
@@ -152,15 +204,14 @@ async function executeHistoryCommands(commands) {
 }
 
 // Execute all PSFH/ROS section commands in one open/close cycle
-async function executePSFHROSCommands(commands) {
+async function executePMHxCommands(commands) {
   console.log('SightFlow: Opening PSFH/ROS section for batch execution');
   
-  const ctx = getContext();
   collapse();
   expandByID('#pmHx');
   await wait();
   
-  const availableTitles = extractTitlesFromScrollable('chart-medical-hx', '300px');
+  const availableTitles = extractPMHxTitlesFromScrollable('chart-medical-hx', '300px');
   
   // Collect all conditions from all commands
   const allConditions = [];
