@@ -346,7 +346,7 @@ async function sendToAI() {
   const inputText = inputTextarea.value.trim();
   if (!inputText) return;
 
-  showStatus('Generating plan...', 'success');
+  showStatus('Generating plan...', 'success', 0); // 0 = infinite duration
   sendToAIButton.disabled = true;
 
   try {
@@ -556,11 +556,23 @@ async function executePlan() {
 }
 
 // Status message helper
-function showStatus(message, type = 'success') {
+let statusTimeout;
+
+function showStatus(message, type = 'success', duration = 3000) {
+  // Clear existing timeout to prevent premature hiding
+  if (statusTimeout) {
+    clearTimeout(statusTimeout);
+    statusTimeout = null;
+  }
+
   statusMessage.textContent = message;
   statusMessage.className = `status-message show ${type}`;
   
-  setTimeout(() => {
-    statusMessage.classList.remove('show');
-  }, 3000);
+  // Only set auto-hide if duration is positive
+  if (duration > 0) {
+    statusTimeout = setTimeout(() => {
+      statusMessage.classList.remove('show');
+      statusTimeout = null;
+    }, duration);
+  }
 }

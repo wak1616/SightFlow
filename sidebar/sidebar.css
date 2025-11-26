@@ -60,7 +60,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  padding: 20px;
+  padding: 16px; /* Reduced padding slightly */
   max-width: 450px;
   margin: 0 auto;
   background-image: radial-gradient(circle at top right, rgba(37, 99, 235, 0.03), transparent 40%);
@@ -69,7 +69,7 @@ body {
 /* Logo Section */
 .logo-section {
   text-align: center;
-  padding: 12px 0 24px;
+  padding: 4px 0 8px; /* Reduced vertical padding */
   position: relative;
 }
 
@@ -88,22 +88,22 @@ body {
 .input-section {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 16px; /* Slightly reduced padding */
+  margin-bottom: 12px; /* Reduced margin */
   box-shadow: var(--shadow-md);
   border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .request-mic-button {
   width: 100%;
-  padding: 12px;
-  margin-bottom: 16px;
+  padding: 10px; /* Slightly smaller */
+  margin-bottom: 12px;
   border: 1px solid #FCD34D;
   border-radius: var(--radius-md);
   background: #FFFBEB;
   color: #B45309;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   transition: all 0.2s ease;
   display: flex;
@@ -119,14 +119,14 @@ body {
 
 .listen-button {
   width: 100%;
-  padding: 14px;
-  margin-bottom: 16px;
+  padding: 12px; /* Slightly smaller */
+  margin-bottom: 12px;
   border: none;
   border-radius: var(--radius-full);
   background: var(--primary-gradient);
   color: white;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -174,14 +174,14 @@ body {
 }
 
 .textarea-wrapper {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   position: relative;
 }
 
 .input-textarea {
   width: 100%;
-  min-height: 300px;
-  padding: 16px;
+  min-height: 120px; /* Reduced height to make room for cards */
+  padding: 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   background-color: var(--bg-input);
@@ -205,7 +205,7 @@ body {
 
 .send-to-ai-button {
   width: 100%;
-  padding: 12px;
+  padding: 10px; /* Slightly smaller */
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   background: white;
@@ -237,34 +237,36 @@ body {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
-  padding: 4px;
+  gap: 6px; /* Tighter gap */
+  margin-bottom: 12px;
+  padding: 0 2px;
 }
 
 .section-item {
-  width: calc(33.33% - 6px); /* 3 per row */
+  width: calc(25% - 4.5px); /* 4 per row (accounting for gap) */
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px;
+  gap: 4px;
+  padding: 6px 4px; /* Smaller padding */
   background: white;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: 10px; /* Smaller font */
   font-weight: 500;
   color: var(--text-secondary);
   transition: all 0.2s ease;
   cursor: default;
+  text-align: center;
 }
 
 .section-indicator {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: var(--border-color);
   transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
 .section-item.active {
@@ -280,10 +282,11 @@ body {
 
 /* Plan Cards */
 .plan-cards-container {
-  flex: 1;
+  flex: 1; /* Takes up all remaining space */
   overflow-y: auto;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   padding-right: 4px; /* Space for scrollbar */
+  min-height: 0; /* Crucial for nested flex scrolling */
 }
 
 /* Custom Scrollbar */
@@ -304,8 +307,8 @@ body {
 .plan-card {
   background: var(--bg-card);
   border-radius: var(--radius-md);
-  padding: 16px;
-  margin-bottom: 12px;
+  padding: 12px; /* Smaller padding */
+  margin-bottom: 8px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
   transition: all 0.2s ease;
@@ -327,10 +330,10 @@ body {
 .plan-card-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 8px;
   border-bottom: 1px solid var(--bg-input);
-  padding-bottom: 8px;
+  padding-bottom: 6px;
 }
 
 .plan-checkbox {
@@ -340,6 +343,7 @@ body {
   border: 2px solid var(--text-tertiary);
   cursor: pointer;
   accent-color: var(--primary-color);
+  flex-shrink: 0;
 }
 
 .plan-section-wrapper {
@@ -350,28 +354,28 @@ body {
 .plan-section {
   font-weight: 700;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .plan-subsection {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-secondary);
   font-weight: 500;
 }
 
 .plan-content {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-primary);
-  line-height: 1.6;
-  padding-left: 26px; /* Align with text above checkbox */
+  line-height: 1.5;
+  padding-left: 24px; /* Align with text above checkbox */
 }
 
 .plan-confidence {
   font-size: 10px;
   color: var(--text-tertiary);
-  margin-top: 8px;
+  margin-top: 6px;
   text-align: right;
   font-style: italic;
 }
@@ -385,7 +389,7 @@ body {
   background: var(--secondary-gradient);
   color: white;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.5px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -394,6 +398,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  margin-top: auto; /* Pushes to bottom if in flex container */
 }
 
 .execute-plan-button:hover:not(:disabled) {
@@ -437,14 +442,14 @@ body {
 
 /* Status Section */
 .status-section {
-  min-height: 40px;
+  min-height: 32px; /* Smaller min height */
   margin-top: 8px;
 }
 
 .status-message {
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: 12px;
   text-align: center;
   opacity: 0;
   transform: translateY(10px);
@@ -472,13 +477,13 @@ body {
 /* Footer */
 .footer {
   text-align: center;
-  padding-top: 12px;
+  padding-top: 8px;
   border-top: 1px solid var(--border-color);
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .version {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text-tertiary);
   letter-spacing: 1px;
   text-transform: uppercase;
