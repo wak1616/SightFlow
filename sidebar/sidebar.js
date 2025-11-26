@@ -446,7 +446,7 @@ function createPlanCard(item, index) {
     <div class="plan-card-header">
       <input type="checkbox" class="plan-checkbox" ${item.selected ? 'checked' : ''} 
              data-index="${index}">
-      <div>
+      <div class="plan-section-wrapper">
         <span class="plan-section">${item.target_section}</span>
         ${item.subsection ? `<span class="plan-subsection">(${item.subsection})</span>` : ''}
       </div>
