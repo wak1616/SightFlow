@@ -44,7 +44,13 @@ VALID COMMANDS (exact format required):
 - {"name": "sf-insert-extended-hpi", "params": {"text": "string"}}
 - {"name": "sf-insert-mental-status", "params": {"text": "string"}}
 - {"name": "sf-insert-psfhros", "params": {"conditionsToSelect": ["array", "of", "strings"]}}
-- {"name": "sf-insert-exam", "params": {"text": "string"}}
+- {"name": "sf-insert-vision", "params": {"odWithGlasses": "string (e.g. 20/20)", "osWithGlasses": "string", "odWithoutGlasses": "string", "osWithoutGlasses": "string"}} (all params optional, include only those mentioned)
+- {"name": "sf-insert-iop", "params": {"od": "string (e.g. 12)", "os": "string"}} (include only eyes mentioned)
+- {"name": "sf-exam-external-defaults", "params": {}} (sets External exam to normal/defaults - use when external exam is normal, no APD, motility normal, ortho, CVF full)
+- {"name": "sf-exam-anterior-defaults", "params": {}} (sets Anterior Segment exam to defaults - lids, conjunctiva, sclera, cornea, AC, iris normal)
+- {"name": "sf-exam-anterior-lens", "params": {"od": "string", "os": "string"}} (lens/cataract/IOL findings - e.g. "2+ NS", "PCIOL well-centered", "clear", "PSC", "cortical changes")
+- {"name": "sf-exam-posterior-defaults", "params": {}} (sets Posterior Segment/retina exam to defaults - vitreous, disc, macula, vessels, periphery normal)
+- {"name": "sf-exam-posterior-cdr", "params": {"od": "string", "os": "string"}} (cup-disc ratio - format as decimal e.g. "0.5", "0.55", "0.7")
 - {"name": "sf-insert-diagnostics", "params": {"text": "string"}}
 - {"name": "sf-insert-impplan", "params": {"text": "string"}}
 - {"name": "sf-insert-followup", "params": {"text": "string"}}
@@ -56,9 +62,16 @@ SECTION MAPPING RULES:
 2. Mental status descriptions (awake, alert, oriented, responsive, consciousness level) → History section, Mental Status Exam subsection, use sf-insert-mental-status command
 3. Physical exam findings (pupils, reflexes, cardiac exam, lung sounds) → Exam section
 4. Past medical history → PSFH/ROS section, PMHx subsection
-5. Diagnostic tests/results → Diagnostics section
-6. Assessment and treatment plans → Imp/Plan section
-7. Follow-up instructions → Follow Up section
+5. Visual acuity / vision measurements (e.g. "20/20", "20/400", "vision with glasses", "vision without glasses") → V & P section, use sf-insert-vision command. "with glasses"/"with correction"/"cc" = WithGlasses params. "without glasses"/"without correction"/"sc"/"Dsc" = WithoutGlasses params. OD=right eye, OS=left eye.
+6. Intraocular pressure / IOP measurements (e.g. "pressure is 12", "IOP 15") → V & P section, use sf-insert-iop command
+7. External exam findings (pupils, motility, CVF/confrontation visual fields, adnexa, no APD, ortho) → Exam section. If normal/unremarkable, use sf-exam-external-defaults command
+8. Anterior Segment exam findings (lids, conjunctiva, sclera, cornea, anterior chamber, iris) → Exam section. If normal/unremarkable, use sf-exam-anterior-defaults command
+9. Lens/cataract/IOL findings (NS cataract, PSC, cortical, PCIOL, clear lens, IOL well-centered) → Exam section, use sf-exam-anterior-lens command with od/os params for each eye's findings
+10. Posterior Segment/retina exam findings (vitreous, disc, macula, vessels, periphery) → Exam section. If normal/unremarkable, use sf-exam-posterior-defaults command
+11. Cup-disc ratio (CDR, C/D ratio, cup to disc) → Exam section, use sf-exam-posterior-cdr command with od/os params. Format: just the decimal value (e.g. "0.5", "0.55")
+12. Diagnostic tests/results → Diagnostics section
+12. Assessment and treatment plans → Imp/Plan section
+13. Follow-up instructions → Follow Up section
 
 CRITICAL: Mental status exam information (e.g., "awake, aware, oriented times three", "alert and oriented", "responsive") MUST go to:
 - target_section: "History"
@@ -101,6 +114,52 @@ Example for chief complaint: "Patient complains of blurred vision in both eyes":
     "selected": true,
     "actions": [{"type": "insert_text", "field": "CC", "value": "Blurred Vision OU"}],
     "commands": [{"name": "sf-insert-CCs", "params": {"finding": "Blurred Vision", "location": "OU"}}]
+  }]
+}
+
+Example for vision and pressure: "Vision is 20/20 with glasses in both eyes and 20/400 without glasses in the right eye and 20/200 without glasses in the left eye. The pressure is 12 in both eyes":
+{
+  "source": "text",
+  "raw_input": "Vision is 20/20 with glasses in both eyes and 20/400 without glasses in the right eye and 20/200 without glasses in the left eye. The pressure is 12 in both eyes",
+  "items": [{
+    "target_section": "V & P",
+    "selected": true,
+    "actions": [{"type": "set_vision"}, {"type": "set_iop"}],
+    "commands": [
+      {"name": "sf-insert-vision", "params": {"odWithGlasses": "20/20", "osWithGlasses": "20/20", "odWithoutGlasses": "20/400", "osWithoutGlasses": "20/200"}},
+      {"name": "sf-insert-iop", "params": {"od": "12", "os": "12"}}
+    ]
+  }]
+}
+
+Example for external exam: "External exam was normal, no APD, motility full, ortho, CVF full":
+{
+  "source": "text",
+  "raw_input": "External exam was normal, no APD, motility full, ortho, CVF full",
+  "items": [{
+    "target_section": "Exam",
+    "subsection": "External",
+    "selected": true,
+    "actions": [{"type": "set_external_defaults"}],
+    "commands": [{"name": "sf-exam-external-defaults", "params": {}}]
+  }]
+}
+
+Example for full exam: "External normal, anterior segment clear, 2+ NS cataract in the right eye, PCIOL well-centered in the left, retina normal, CDR 0.5 in both eyes":
+{
+  "source": "text",
+  "raw_input": "External normal, anterior segment clear, 2+ NS cataract in the right eye, PCIOL well-centered in the left, retina normal, CDR 0.5 in both eyes",
+  "items": [{
+    "target_section": "Exam",
+    "selected": true,
+    "actions": [{"type": "set_exam_findings"}],
+    "commands": [
+      {"name": "sf-exam-external-defaults", "params": {}},
+      {"name": "sf-exam-anterior-defaults", "params": {}},
+      {"name": "sf-exam-anterior-lens", "params": {"od": "2+ NS cataract", "os": "PCIOL well-centered"}},
+      {"name": "sf-exam-posterior-defaults", "params": {}},
+      {"name": "sf-exam-posterior-cdr", "params": {"od": "0.5", "os": "0.5"}}
+    ]
   }]
 }
 
