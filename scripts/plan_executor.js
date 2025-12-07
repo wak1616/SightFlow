@@ -317,16 +317,40 @@ async function executeExamCommands(commands) {
 async function executeDiagnosticsCommands(commands) {
     console.log('SightFlow: Opening Diagnostics section for batch execution');
     collapse();
-    expandByID('#diagnostics');
-    await wait(500);
+    
+    // Expand the Diagnostics section
+    await expandDiagnosticsSection();
+    
+    // Collect all diagnostic tests and text content from commands
+    const diagnosticTests = [];
     const textContents = [];
+    
     for (const command of commands) {
         const commandName = command.name;
         const commandParams = command.params;
-        if (commandName === 'sf-insert-diagnostics' && commandParams.text) {
+        
+        if (commandName === 'sf-insert-diagnostic-test') {
+            // Collect diagnostic test orders
+            if (commandParams.testName) {
+                diagnosticTests.push({
+                    testName: commandParams.testName,
+                    location: commandParams.location || 'OU' // Default to OU
+                });
+            }
+        } else if (commandName === 'sf-insert-diagnostics' && commandParams.text) {
+            // Legacy text insertion (for free-text notes)
             textContents.push(commandParams.text);
         }
     }
+    
+    // Process all diagnostic test orders
+    for (const test of diagnosticTests) {
+        console.log(`SightFlow: Processing diagnostic test: ${test.testName} (${test.location})`);
+        await addDiagnosticTest(test.testName, test.location);
+        await wait(200);
+    }
+    
+    // Insert any text content if present
     if (textContents.length > 0) {
         const combinedText = textContents.join(' ');
         const textarea = clickTextAreaWithinSection('chart-diagnostics');
@@ -334,56 +358,160 @@ async function executeDiagnosticsCommands(commands) {
             setAngularValue(textarea, combinedText);
         }
     }
-    collapse();
+    
+    // Collapse/save the Diagnostics section
+    await collapseDiagnosticsSection();
     console.log('SightFlow: Diagnostics section batch execution complete');
 }
 // Execute all Imp/Plan section commands in one open/close cycle
 async function executeImpPlanCommands(commands) {
     console.log('SightFlow: Opening Imp/Plan section for batch execution');
+    console.log('SightFlow: Received commands:', JSON.stringify(commands, null, 2));
     collapse();
-    expandByID('#impPlan');
-    await wait(500);
-    const textContents = [];
+    await wait(300);
+    
+    // Collect diagnoses (with their discussion texts) from commands
+    const diagnosesToAdd = [];
+    const legacyTextContents = []; // For old sf-insert-impplan commands
+    
     for (const command of commands) {
         const commandName = command.name;
         const commandParams = command.params;
-        if (commandName === 'sf-insert-impplan' && commandParams.text) {
-            textContents.push(commandParams.text);
+        console.log(`SightFlow: Processing command: ${commandName}`, commandParams);
+        
+        if (commandName === 'sf-insert-impplan-diagnosis') {
+            // Each diagnosis can have its own discussionText
+            if (commandParams.diagnosis) {
+                diagnosesToAdd.push({
+                    diagnosis: commandParams.diagnosis,
+                    eyeLocation: commandParams.eyeLocation || 'OU',
+                    discussionText: commandParams.discussionText || null
+                });
+            }
+        } else if (commandName === 'sf-insert-impplan' && commandParams.text) {
+            // Legacy command - collect for backwards compatibility
+            legacyTextContents.push(commandParams.text);
         }
     }
-    if (textContents.length > 0) {
-        const combinedText = textContents.join(' ');
-        const textarea = clickTextAreaWithinSection('chart-imp-plan');
-        if (textarea) {
-            setAngularValue(textarea, combinedText);
+    
+    console.log(`SightFlow: Collected ${diagnosesToAdd.length} diagnoses to add:`, diagnosesToAdd);
+    
+    // If no diagnoses were collected, still try clicking Add button for debugging
+    if (diagnosesToAdd.length === 0) {
+        console.log('SightFlow: No diagnoses collected! Command names might not be matching.');
+    }
+    
+    // Add each diagnosis and its discussion text immediately after
+    // This ensures each diagnosis gets its own text (since the most recently added is at index 0)
+    for (const dx of diagnosesToAdd) {
+        console.log(`SightFlow: Adding diagnosis: ${dx.diagnosis} (${dx.eyeLocation})`);
+        await addImpPlanDiagnosis(dx.diagnosis, dx.eyeLocation);
+        await wait(300);
+        
+        // If this diagnosis has discussion text, add it now (it's at index 0)
+        if (dx.discussionText) {
+            console.log(`SightFlow: Adding discussion text for ${dx.diagnosis}: "${dx.discussionText}"`);
+            const textInserted = await insertImpPlanDiscussionText(0, dx.discussionText);
+            if (!textInserted) {
+                console.log('SightFlow: Failed to insert discussion text');
+            }
+            await wait(300);
         }
     }
-    collapse();
+    
+    // Handle legacy sf-insert-impplan commands (add to most recent diagnosis if any)
+    if (legacyTextContents.length > 0 && diagnosesToAdd.length > 0) {
+        const combinedText = legacyTextContents.join(' ');
+        console.log(`SightFlow: Adding legacy text content to most recent diagnosis: "${combinedText}"`);
+        
+        // Insert text into the first item (most recently added diagnosis)
+        const textInserted = await insertImpPlanDiscussionText(0, combinedText);
+        if (!textInserted) {
+            console.log('SightFlow: Failed to insert legacy text into discussion');
+        }
+        await wait(300);
+    }
+    
+    // Collapse to save
+    await collapseImpPlanSection();
     console.log('SightFlow: Imp/Plan section batch execution complete');
 }
 // Execute all Follow Up section commands in one open/close cycle
 async function executeFollowUpCommands(commands) {
     console.log('SightFlow: Opening Follow Up section for batch execution');
-    collapse();
-    expandByID('#followUp');
-    await wait(500);
-    const textContents = [];
+    // NOTE: Don't call collapse() here - it interferes with Follow Up section behavior
+    
+    // Use the new expandFollowUpSection function that finds chart-plan
+    const expanded = await expandFollowUpSection();
+    if (!expanded) {
+        console.log('SightFlow: Failed to expand Follow Up section');
+        return;
+    }
+    
+    // Wait for the Follow Up section to initialize
+    await wait(300);
+    
+    // Extract follow-up timeframe from commands
+    let timeframe = null;
+    
     for (const command of commands) {
         const commandName = command.name;
         const commandParams = command.params;
-        if (commandName === 'sf-insert-followup' && commandParams.text) {
-            textContents.push(commandParams.text);
+        
+        if (commandName === 'sf-insert-followup') {
+            if (commandParams.timeframe) {
+                timeframe = commandParams.timeframe;
+            }
         }
     }
-    if (textContents.length > 0) {
-        const combinedText = textContents.join(' ');
-        const textarea = clickTextAreaWithinSection('chart-follow-up');
-        if (textarea) {
-            setAngularValue(textarea, combinedText);
+    
+    // Select timeframe (number and unit) - doctor defaults to logged-in user
+    if (timeframe) {
+        const timeframeParts = parseTimeframe(timeframe);
+        if (timeframeParts) {
+            // Select number
+            console.log(`SightFlow: Selecting follow-up number: ${timeframeParts.number}`);
+            const numberSelected = await selectFollowUpNumber(timeframeParts.number);
+            if (!numberSelected) {
+                console.log('SightFlow: Failed to select number');
+            }
+            await wait(200);
+            
+            // Select time unit
+            console.log(`SightFlow: Selecting follow-up time unit: ${timeframeParts.unit}`);
+            const unitSelected = await selectFollowUpTimeUnit(timeframeParts.unit);
+            if (!unitSelected) {
+                console.log('SightFlow: Failed to select time unit');
+            }
+            await wait(200);
         }
     }
+    
+    // Collapse to save
     collapse();
     console.log('SightFlow: Follow Up section batch execution complete');
+}
+
+/**
+ * Parses a timeframe string into number and unit
+ * @param timeframe - String like "2 weeks", "1 month", "3 days"
+ * @returns Object with {number, unit} or null if parsing failed
+ */
+function parseTimeframe(timeframe) {
+    const normalized = timeframe.toLowerCase().trim();
+    
+    // Match patterns like "2 weeks", "1 month", "3 days"
+    const match = normalized.match(/^(\d+)\s*(day|days|week|weeks|month|months)$/);
+    
+    if (match) {
+        return {
+            number: match[1],
+            unit: match[2]
+        };
+    }
+    
+    console.log(`SightFlow: Could not parse timeframe: "${timeframe}"`);
+    return null;
 }
 
 // Execute all V&P (Vision & Pressure) section commands
@@ -441,7 +569,10 @@ async function executeVPCommands(commands) {
     // Check if we have any refraction data to enter
     const hasRefractionData = refractionData.od || refractionData.os;
     
-    // Process Visual Acuity if we have vision data
+    // ORDER: Vision → IOP → Refraction → Collapse at end
+    // Keep V&P section open throughout all operations
+    
+    // 1. Process Visual Acuity if we have vision data
     if (hasVisionData) {
         console.log('SightFlow: Expanding Visual Acuity section');
         await expandVisualAcuitySection();
@@ -472,19 +603,10 @@ async function executeVPCommands(commands) {
             await setVisualAcuity('OS', true, visionData.osWithGlasses);
             await wait(200);
         }
-        
-        // Collapse Visual Acuity section if no IOP or refraction data
-        if (!hasIOPData && !hasRefractionData) {
-            console.log('SightFlow: No IOP/refraction data, collapsing Visual Acuity section');
-            const circleFlag = document.querySelector('[data-qa="assistedCodingVisualAcuityCircleFlag"]');
-            if (circleFlag) {
-                circleFlag.click();
-                await wait(300);
-            }
-        }
+        // Don't collapse VA section - IOP will naturally dismiss the VA picker
     }
     
-    // Process IOP if we have IOP data
+    // 2. Process IOP if we have IOP data (clicking IOP dismisses VA picker naturally)
     if (hasIOPData) {
         console.log('SightFlow: Expanding IOP section');
         await expandIOPSection();
@@ -501,26 +623,21 @@ async function executeVPCommands(commands) {
             await setIOPValue('OS', iopData.os);
             await wait(100);
         }
-        
-        // Collapse IOP section if no refraction data
-        if (!hasRefractionData) {
-            const iopCircleFlag = document.querySelector('[data-qa="assistedCodingIOPCircleFlag"]');
-            if (iopCircleFlag) {
-                iopCircleFlag.click();
-                await wait(200);
-            }
-        }
+        // Don't collapse yet - continue to refraction if present
     }
     
-    // Process Refraction if we have refraction data
+    // 3. Process Refraction if we have refraction data (LAST before collapse)
     if (hasRefractionData) {
         console.log('SightFlow: Processing refraction data');
-        await inputFullRefraction(refractionData.od, refractionData.os);
-        // inputFullRefraction already clicks chart-section-v-and-p to save
-    } else {
-        // Only collapse if no refraction data (refraction saves itself)
+        // Pass false - we'll handle collapse at the end
+        await inputFullRefraction(refractionData.od, refractionData.os, false);
+    }
+    
+    // 4. Finally collapse V&P section to save all data
+    if (hasVisionData || hasIOPData || hasRefractionData) {
+        console.log('SightFlow: Collapsing V&P section to save');
         await wait(200);
-        collapse();
+        await collapseVandPSection();
     }
     
     console.log('SightFlow: V&P section batch execution complete');

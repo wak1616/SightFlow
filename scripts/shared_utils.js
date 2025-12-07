@@ -67,6 +67,23 @@ async function expandByID(sectionId) {
     await wait();
     return true;
 }
+
+/**
+ * Expands or collapses a section by clicking on the specified element tag
+ * @param sectionTag - The tag name selector (e.g., 'chart-chart-section-diagnostics')
+ * @returns True if successful, false if element not found
+ */
+async function toggleSectionByTag(sectionTag) {
+    const el = document.querySelector(sectionTag);
+    if (!el) {
+        console.log(`SightFlow: Could not find element with tag "${sectionTag}"`);
+        return false;
+    }
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.click();
+    await wait();
+    return true;
+}
 /**
  * Collapses and saves the section by clicking outside the edit area
  * @returns True if successful, false if element not found
@@ -650,12 +667,38 @@ async function setupRefraction() {
 }
 
 /**
+ * Clicks the +PL button to add diagnoses to the impression and plan
+ * @returns True if successful
+ */
+async function clickAddToPL() {
+    // Find the chart-refractions element first to scope our queries
+    const chartRefractions = document.querySelector('chart-refractions');
+    if (!chartRefractions) {
+        console.log('SightFlow: Could not find chart-refractions element');
+        return false;
+    }
+    
+    // Find the +PL button by its title attribute within chart-refractions
+    const plButton = chartRefractions.querySelector('mdi-button[title="Add to PL"]');
+    if (!plButton) {
+        console.log('SightFlow: Could not find +PL button in chart-refractions');
+        return false;
+    }
+    
+    plButton.click();
+    console.log('SightFlow: Clicked +PL button to add diagnoses to impression and plan');
+    await wait(300);
+    return true;
+}
+
+/**
  * Inputs complete refraction for both eyes
  * @param odRefraction - Object with {sphere, cylinder, axis, add} for OD
  * @param osRefraction - Object with {sphere, cylinder, axis, add} for OS
+ * @param shouldCollapse - Whether to collapse V&P section after (default: false, caller handles collapse)
  * @returns True if successful
  */
-async function inputFullRefraction(odRefraction, osRefraction) {
+async function inputFullRefraction(odRefraction, osRefraction, shouldCollapse = false) {
     console.log('SightFlow: Starting full refraction input');
     
     // Setup refraction (open tab, click +Spec Rx, select MR Dry)
@@ -698,18 +741,34 @@ async function inputFullRefraction(odRefraction, osRefraction) {
         );
     }
     
-    // Wait for Angular to process before clicking outside
-    await wait(500);
+    // Wait then click +PL button to add diagnoses to impression and plan
+    await wait(300);
+    await clickAddToPL();
     
-    // Click on V&P section to commit/save refraction changes
-    const vpSection = document.querySelector('chart-section-v-and-p');
-    if (vpSection) {
-        vpSection.click();
-        console.log('SightFlow: Clicked chart-section-v-and-p to save refraction');
-        await wait(800);
+    // Only collapse if explicitly requested (caller typically handles this)
+    if (shouldCollapse) {
+        await wait(300);
+        await collapseVandPSection();
     }
     
     console.log('SightFlow: Full refraction input complete');
+    return true;
+}
+
+/**
+ * Collapses the V&P section by clicking on the section element
+ * @returns True if successful, false if element not found
+ */
+async function collapseVandPSection() {
+    const vandpSection = document.querySelector('chart-section-v-and-p');
+    if (!vandpSection) {
+        console.log('SightFlow: Could not find chart-section-v-and-p element');
+        return false;
+    }
+    
+    vandpSection.click();
+    console.log('SightFlow: Clicked chart-section-v-and-p to collapse/save V&P section');
+    await wait(300);
     return true;
 }
 
@@ -739,8 +798,8 @@ async function clickExamNavItem(navIndex) {
  * @returns True if successful, false if element not found
  */
 async function clickSegmentDefaults(segmentName) {
-    // Find all chart-segment elements
-    const segments = document.querySelectorAll('chart-segment');
+    // Find all chart-segment and chart-segment-header elements
+    const segments = document.querySelectorAll('chart-segment, chart-segment-header');
     
     for (const segment of segments) {
         // Check if this segment contains the specified name in its header
@@ -776,6 +835,9 @@ async function setExternalExamDefaults() {
     
     await wait(200);
     
+    // Ensure OU is freshly selected (toggles off/on if already selected)
+    await ensureSegmentOUSelected('External');
+    
     // Click the [Defaults] button for External segment
     const defaultsClicked = await clickSegmentDefaults('External');
     return defaultsClicked;
@@ -787,8 +849,8 @@ async function setExternalExamDefaults() {
  * @returns True if successful, false if element not found
  */
 async function clickSegmentOU(segmentName) {
-    // Find all chart-segment elements
-    const segments = document.querySelectorAll('chart-segment');
+    // Find all chart-segment and chart-segment-header elements
+    const segments = document.querySelectorAll('chart-segment, chart-segment-header');
     
     for (const segment of segments) {
         // Check if this segment contains the specified name in its header
@@ -818,6 +880,57 @@ async function clickSegmentOU(segmentName) {
 }
 
 /**
+ * Ensures OU is freshly selected in a segment header before proceeding
+ * If OU is already selected: deselect it, wait, then reselect it
+ * If OU is not selected: select it
+ * This ensures a fresh selection state before clicking Defaults
+ * @param segmentName - The name of the segment (e.g., "External", "Anterior Segment")
+ * @returns True if OU is selected, false if element not found
+ */
+async function ensureSegmentOUSelected(segmentName) {
+    // Find all chart-segment and chart-segment-header elements
+    const segments = document.querySelectorAll('chart-segment, chart-segment-header');
+    
+    for (const segment of segments) {
+        // Check if this segment contains the specified name in its header
+        const header = segment.querySelector('h4');
+        if (header && header.textContent.trim().toLowerCase().includes(segmentName.toLowerCase())) {
+            // Found the segment, now find the OU button in the column header
+            const columnHeader = segment.querySelector('chart-segment-column-header');
+            if (columnHeader) {
+                // Find the OU span
+                const spans = columnHeader.querySelectorAll('.action-text');
+                for (const span of spans) {
+                    if (span.textContent.trim() === 'OU') {
+                        // Check if OU is already selected (has action-text-selected class)
+                        if (span.classList.contains('action-text-selected')) {
+                            // OU is selected - deselect it first, wait, then reselect
+                            console.log(`SightFlow: OU is selected for ${segmentName}, toggling off then on`);
+                            span.click(); // Deselect
+                            await wait(200);
+                            span.click(); // Reselect
+                            await wait(200);
+                            console.log(`SightFlow: OU toggled and reselected for ${segmentName} segment`);
+                            return true;
+                        }
+                        // OU is not selected, click to select it
+                        span.click();
+                        console.log(`SightFlow: Clicked OU to select it for ${segmentName} segment`);
+                        await wait(200);
+                        return true;
+                    }
+                }
+            }
+            console.log(`SightFlow: Found ${segmentName} segment but no OU button`);
+            return false;
+        }
+    }
+    
+    console.log(`SightFlow: Could not find segment with name "${segmentName}"`);
+    return false;
+}
+
+/**
  * Sets the Anterior Segment exam to defaults
  * @returns True if successful
  */
@@ -828,11 +941,11 @@ async function setAnteriorSegmentDefaults() {
         return false;
     }
     
-    await wait(200);
+    // Wait for segment to fully render
+    await wait(400);
     
-    // Click OU to select both eyes
-    await clickSegmentOU('Anterior Segment');
-    await wait(100);
+    // Ensure OU is freshly selected (toggles off/on if already selected)
+    await ensureSegmentOUSelected('Anterior Segment');
     
     // Click the [Defaults] button for Anterior Segment
     const defaultsClicked = await clickSegmentDefaults('Anterior Segment');
@@ -890,11 +1003,11 @@ async function setPosteriorSegmentDefaults() {
         return false;
     }
     
-    await wait(200);
+    // Wait for segment to fully render
+    await wait(400);
     
-    // Click OU to select both eyes
-    await clickSegmentOU('Posterior Segment');
-    await wait(100);
+    // Ensure OU is freshly selected (toggles off/on if already selected)
+    await ensureSegmentOUSelected('Posterior Segment');
     
     // Click the [Defaults] button for Posterior Segment
     const defaultsClicked = await clickSegmentDefaults('Posterior Segment');
@@ -950,4 +1063,883 @@ async function setPosteriorSegmentCDR(eye, cdrValue) {
     await wait(200);
     
     return true;
+}
+
+// ==================== DIAGNOSTICS SECTION FUNCTIONS ====================
+
+/**
+ * Expands the Diagnostics section by clicking on the header div containing the h3 "Diagnostics"
+ * @returns True if successful, false if element not found
+ */
+async function expandDiagnosticsSection() {
+    const diagnosticsSection = document.querySelector('chart-chart-section-diagnostics');
+    if (!diagnosticsSection) {
+        console.log('SightFlow: Could not find chart-chart-section-diagnostics element');
+        return false;
+    }
+    
+    // Find the h3 containing "Diagnostics" within this section
+    const h3Elements = diagnosticsSection.querySelectorAll('h3');
+    let diagnosticsH3 = null;
+    for (const h3 of h3Elements) {
+        if (h3.textContent.trim() === 'Diagnostics') {
+            diagnosticsH3 = h3;
+            break;
+        }
+    }
+    
+    if (!diagnosticsH3) {
+        console.log('SightFlow: Could not find h3 Diagnostics element');
+        return false;
+    }
+    
+    // Click on the parent div (table-cell-left-center) of the h3
+    const parentDiv = diagnosticsH3.parentElement;
+    if (!parentDiv) {
+        console.log('SightFlow: Could not find parent div of Diagnostics h3');
+        return false;
+    }
+    
+    parentDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    parentDiv.click();
+    console.log('SightFlow: Clicked Diagnostics header to expand');
+    await wait(500);
+    return true;
+}
+
+/**
+ * Collapses the Diagnostics section by clicking on the section element
+ * @returns True if successful, false if element not found
+ */
+async function collapseDiagnosticsSection() {
+    const diagnosticsSection = document.querySelector('chart-chart-section-diagnostics');
+    if (!diagnosticsSection) {
+        console.log('SightFlow: Could not find chart-chart-section-diagnostics element');
+        return false;
+    }
+    
+    diagnosticsSection.click();
+    console.log('SightFlow: Clicked chart-chart-section-diagnostics to collapse/save');
+    await wait(300);
+    return true;
+}
+
+/**
+ * Maps common test name variations to their exact title in the EMR
+ */
+const DIAGNOSTIC_TEST_MAP = {
+    // OCT Macula variations
+    'oct macula': 'OCT Macula',
+    'oct of the macula': 'OCT Macula',
+    'macular oct': 'OCT Macula',
+    'macula oct': 'OCT Macula',
+    // OCT RNFL variations
+    'oct rnfl': 'OCT RNFL',
+    'rnfl oct': 'OCT RNFL',
+    'oct nerve fiber layer': 'OCT RNFL',
+    'nerve fiber layer': 'OCT RNFL',
+    // IOL Master variations
+    'iol master': 'IOL Master/Lenstar',
+    'iolmaster': 'IOL Master/Lenstar',
+    'lenstar': 'IOL Master/Lenstar',
+    'biometry': 'IOL Master/Lenstar',
+    // Corneal Topography/Pentacam variations
+    'pentacam': 'Corneal Topography',
+    'corneal topography': 'Corneal Topography',
+    'topography': 'Corneal Topography',
+    'topo': 'Corneal Topography',
+    // Visual Field variations
+    'visual field': 'Visual Field',
+    'hvf': 'Visual Field',
+    'humphrey visual field': 'Visual Field',
+    'vf': 'Visual Field',
+    // Fundus Photos
+    'fundus photo': 'Fundus Photo',
+    'fundus photos': 'Fundus Photo',
+    'fundus photography': 'Fundus Photo',
+    // Pachymetry
+    'pachymetry': 'Pachymetry',
+    'corneal thickness': 'Pachymetry',
+};
+
+/**
+ * Normalizes a test name to its EMR title
+ * @param testName - The test name to normalize (e.g., "OCT of the macula", "pentacam")
+ * @returns The normalized EMR title or the original name if no mapping found
+ */
+function normalizeTestName(testName) {
+    const normalized = testName.toLowerCase().trim();
+    return DIAGNOSTIC_TEST_MAP[normalized] || testName;
+}
+
+/**
+ * Selects a diagnostic test by clicking on its title element
+ * @param testTitle - The title of the test to select (e.g., "OCT Macula", "IOL Master/Lenstar")
+ * @returns True if successful, false if element not found
+ */
+async function selectDiagnosticTest(testTitle) {
+    // Normalize the test name first
+    const normalizedTitle = normalizeTestName(testTitle);
+    
+    // Find the div with the matching title attribute within chart-chart-section-diagnostics
+    const diagnosticsSection = document.querySelector('chart-chart-section-diagnostics');
+    if (!diagnosticsSection) {
+        console.log('SightFlow: Could not find chart-chart-section-diagnostics element');
+        return false;
+    }
+    
+    // Try exact match first
+    let testElement = diagnosticsSection.querySelector(`div[title="${normalizedTitle}"]`);
+    
+    // If not found, try case-insensitive search
+    if (!testElement) {
+        const allDivs = diagnosticsSection.querySelectorAll('div[title]');
+        for (const div of allDivs) {
+            const title = div.getAttribute('title');
+            if (title && title.toLowerCase() === normalizedTitle.toLowerCase()) {
+                testElement = div;
+                break;
+            }
+        }
+    }
+    
+    if (!testElement) {
+        console.log(`SightFlow: Could not find diagnostic test with title "${normalizedTitle}" (original: "${testTitle}")`);
+        return false;
+    }
+    
+    testElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    testElement.click();
+    console.log(`SightFlow: Selected diagnostic test: ${normalizedTitle}`);
+    await wait(300);
+    return true;
+}
+
+/**
+ * Selects a location/laterality for the diagnostic test
+ * @param location - The location to select (e.g., "OD", "OS", "OU")
+ * @returns True if successful, false if element not found
+ */
+async function selectDiagnosticLocation(location) {
+    // Default to OU if no location specified
+    const targetLocation = location || 'OU';
+    
+    // Find the div with the matching title attribute within chart-chart-section-diagnostics
+    const diagnosticsSection = document.querySelector('chart-chart-section-diagnostics');
+    if (!diagnosticsSection) {
+        console.log('SightFlow: Could not find chart-chart-section-diagnostics element');
+        return false;
+    }
+    
+    const locationElement = diagnosticsSection.querySelector(`div[title="${targetLocation}"]`);
+    
+    if (!locationElement) {
+        console.log(`SightFlow: Could not find location "${targetLocation}" in Diagnostics section`);
+        return false;
+    }
+    
+    locationElement.click();
+    console.log(`SightFlow: Selected diagnostic location: ${targetLocation}`);
+    await wait(200);
+    return true;
+}
+
+/**
+ * Adds a complete diagnostic test with location
+ * @param testName - The name of the test (e.g., "OCT Macula", "Pentacam", "IOL Master")
+ * @param location - The laterality (e.g., "OD", "OS", "OU") - defaults to "OU"
+ * @returns True if successful
+ */
+async function addDiagnosticTest(testName, location = 'OU') {
+    console.log(`SightFlow: Adding diagnostic test: ${testName} (${location})`);
+    
+    // Select the test
+    const testSelected = await selectDiagnosticTest(testName);
+    if (!testSelected) {
+        console.log(`SightFlow: Failed to select test: ${testName}`);
+        return false;
+    }
+    
+    // Select the location
+    const locationSelected = await selectDiagnosticLocation(location);
+    if (!locationSelected) {
+        console.log(`SightFlow: Failed to select location: ${location}`);
+        // Continue anyway as test was selected
+    }
+    
+    return true;
+}
+
+// ==================== IMP/PLAN SECTION FUNCTIONS ====================
+
+/**
+ * Clicks the Add button in the Imp/Plan section
+ * @returns True if successful, false if element not found
+ */
+async function clickImpPlanAddButton() {
+    // Try finding the button directly in the document first
+    const allAddButtons = document.querySelectorAll('button[title="Add"]');
+    console.log(`SightFlow: Found ${allAddButtons.length} buttons with title="Add" in document`);
+    
+    const chartImpression = document.querySelector('chart-impression');
+    if (!chartImpression) {
+        console.log('SightFlow: Could not find chart-impression element');
+        return false;
+    }
+    console.log('SightFlow: Found chart-impression element');
+    
+    // Find the button with title="Add" under chart-impression
+    const addButton = chartImpression.querySelector('button[title="Add"]');
+    if (!addButton) {
+        console.log('SightFlow: Could not find button[title="Add"] in chart-impression');
+        // Log what buttons ARE in chart-impression
+        const buttonsInSection = chartImpression.querySelectorAll('button');
+        console.log(`SightFlow: Found ${buttonsInSection.length} buttons in chart-impression`);
+        buttonsInSection.forEach((btn, i) => {
+            console.log(`SightFlow: Button ${i}: title="${btn.getAttribute('title')}", class="${btn.className}"`);
+        });
+        return false;
+    }
+    
+    console.log('SightFlow: Found button[title="Add"], attempting click...');
+    console.log('SightFlow: Button classes:', addButton.className);
+    
+    addButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    await wait(200);
+    
+    // Try focus first
+    addButton.focus();
+    await wait(100);
+    
+    // Dispatch full mouse event sequence for Angular Material button
+    addButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
+    addButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
+    addButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+    
+    console.log('SightFlow: Dispatched mouse events on button[title="Add"] in Imp/Plan section');
+    await wait(300);
+    return true;
+}
+
+/**
+ * Normalizes a diagnosis search term by removing plural 's' suffix
+ * @param term - The search term (e.g., "cataracts")
+ * @returns Normalized term (e.g., "cataract")
+ */
+function normalizeSearchTerm(term) {
+    let normalized = term.trim();
+    // Remove trailing 's' for singular form (e.g., cataracts → cataract)
+    if (normalized.toLowerCase().endsWith('s') && normalized.length > 3) {
+        normalized = normalized.slice(0, -1);
+    }
+    return normalized;
+}
+
+/**
+ * Types a search term into the Imp/Plan problem list search box
+ * Automatically normalizes the search term (removes plural 's')
+ * @param searchTerm - The diagnosis to search for
+ * @returns True if successful, false if element not found
+ */
+async function searchImpPlanDiagnosis(searchTerm) {
+    // Normalize search term (remove plural 's')
+    const normalizedTerm = normalizeSearchTerm(searchTerm);
+    console.log(`SightFlow: Searching for "${normalizedTerm}" (original: "${searchTerm}")`);
+    
+    const problemList = document.querySelector('chart-problem-list');
+    if (!problemList) {
+        console.log('SightFlow: Could not find chart-problem-list element');
+        return false;
+    }
+    console.log('SightFlow: Found chart-problem-list element');
+    
+    // Try multiple possible search input selectors
+    let searchInput = problemList.querySelector('input[placeholder="Search"]');
+    if (!searchInput) {
+        searchInput = problemList.querySelector('input[type="text"]');
+    }
+    if (!searchInput) {
+        searchInput = problemList.querySelector('input');
+    }
+    
+    if (!searchInput) {
+        console.log('SightFlow: Could not find Search input in problem list');
+        // Log what inputs ARE in the problem list
+        const allInputs = problemList.querySelectorAll('input');
+        console.log(`SightFlow: Found ${allInputs.length} input(s) in problem list`);
+        allInputs.forEach((inp, i) => {
+            console.log(`  Input ${i}: placeholder="${inp.getAttribute('placeholder')}", type="${inp.type}"`);
+        });
+        return false;
+    }
+    
+    console.log(`SightFlow: Found search input with placeholder="${searchInput.getAttribute('placeholder')}"`);
+    
+    searchInput.click();
+    searchInput.focus();
+    await wait(100);
+    setAngularValue(searchInput, normalizedTerm);
+    console.log(`SightFlow: Entered search term: ${normalizedTerm}`);
+    await wait(500); // Wait for search results to load
+    return true;
+}
+
+/**
+ * Selects a diagnosis from the Imp/Plan problem list
+ * Uses chart-problem-list-items container and clicks on the parent mu-item wrapper
+ * @param diagnosisTitle - The title of the diagnosis to select (used for matching)
+ * @returns True if successful, false if element not found
+ */
+async function selectImpPlanDiagnosis(diagnosisTitle) {
+    // Use chart-problem-list-items as the container
+    const problemListItems = document.querySelector('chart-problem-list-items');
+    if (!problemListItems) {
+        console.log('SightFlow: Could not find chart-problem-list-items element');
+        return false;
+    }
+    console.log('SightFlow: Found chart-problem-list-items element');
+    
+    // Get all diagnosis items with title attribute
+    const allItems = problemListItems.querySelectorAll('div.problem-list-item[title]');
+    console.log(`SightFlow: Found ${allItems.length} diagnosis items in problem list`);
+    
+    if (allItems.length === 0) {
+        console.log('SightFlow: No diagnosis items found in search results');
+        return false;
+    }
+    
+    // Log available items for debugging
+    console.log('SightFlow: Available diagnoses:');
+    allItems.forEach((item, i) => {
+        console.log(`  ${i + 1}. ${item.getAttribute('title')}`);
+    });
+    
+    // Normalize the search term for matching
+    const normalizedSearch = normalizeSearchTerm(diagnosisTitle).toLowerCase();
+    console.log(`SightFlow: Looking for match with normalized term: "${normalizedSearch}"`);
+    
+    // Find the best matching item - first one that contains the search term wins
+    let bestMatch = null;
+    for (const item of allItems) {
+        const title = item.getAttribute('title');
+        if (title && title.toLowerCase().includes(normalizedSearch)) {
+            bestMatch = item;
+            console.log(`SightFlow: Found matching diagnosis: "${title}"`);
+            break; // Take the first match (usually the best/most common)
+        }
+    }
+    
+    // If no match found, just take the first result (it's what the search returned)
+    if (!bestMatch && allItems.length > 0) {
+        bestMatch = allItems[0];
+        console.log(`SightFlow: No exact match, selecting first result: "${bestMatch.getAttribute('title')}"`);
+    }
+    
+    if (!bestMatch) {
+        console.log(`SightFlow: Could not find any diagnosis to select`);
+        return false;
+    }
+    
+    // Click on the parent div (the mu-item wrapper)
+    const parentWrapper = bestMatch.parentElement;
+    const title = bestMatch.getAttribute('title');
+    
+    if (parentWrapper && parentWrapper.classList.contains('problem-list-item-wrapper')) {
+        parentWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await wait(100);
+        parentWrapper.click();
+        console.log(`SightFlow: Clicked parent wrapper for: "${title}"`);
+        await wait(200);
+        return true;
+    } else {
+        // Fallback: click the item directly
+        bestMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await wait(100);
+        bestMatch.click();
+        console.log(`SightFlow: Clicked item directly for: "${title}"`);
+        await wait(200);
+        return true;
+    }
+}
+
+/**
+ * Selects an eye location (OD, OS, OU) for the current diagnosis
+ * @param location - The eye location to select ('OD', 'OS', 'OU')
+ * @returns True if successful, false if element not found
+ */
+async function selectImpPlanEyeLocation(location) {
+    const problemList = document.querySelector('chart-problem-list');
+    if (!problemList) {
+        console.log('SightFlow: Could not find chart-problem-list element');
+        return false;
+    }
+    
+    const eyeLocations = problemList.querySelector('chart-problem-list-eye-locations');
+    if (!eyeLocations) {
+        console.log('SightFlow: Could not find chart-problem-list-eye-locations element');
+        return false;
+    }
+    
+    // Find the selectable item with the matching title
+    const locationElement = eyeLocations.querySelector(`div.selectable-item[title="${location}"]`);
+    if (locationElement) {
+        locationElement.click();
+        console.log(`SightFlow: Selected eye location: ${location}`);
+        await wait(200);
+        return true;
+    }
+    
+    console.log(`SightFlow: Could not find eye location: ${location}`);
+    return false;
+}
+
+/**
+ * Adds a diagnosis to the Imp/Plan section with eye location
+ * Complete workflow: Click Add -> Search/Select diagnosis -> Select eye location
+ * @param diagnosisName - The diagnosis name to add
+ * @param eyeLocation - The eye location ('OD', 'OS', 'OU') - defaults to 'OU'
+ * @returns True if successful
+ */
+async function addImpPlanDiagnosis(diagnosisName, eyeLocation = 'OU') {
+    console.log(`SightFlow: Adding Imp/Plan diagnosis: ${diagnosisName} (${eyeLocation})`);
+    
+    // Click Add button to open problem list
+    const addClicked = await clickImpPlanAddButton();
+    if (!addClicked) {
+        return false;
+    }
+    
+    await wait(500); // Wait for problem list panel to fully load
+    
+    // Search for the diagnosis first (don't try direct selection as list is usually long)
+    console.log(`SightFlow: Searching for diagnosis: ${diagnosisName}`);
+    const searchSucceeded = await searchImpPlanDiagnosis(diagnosisName);
+    
+    if (!searchSucceeded) {
+        console.log('SightFlow: Search failed, trying direct selection...');
+    }
+    
+    await wait(600); // Wait for search results to populate
+    
+    // Now try to select the diagnosis
+    const diagnosisSelected = await selectImpPlanDiagnosis(diagnosisName);
+    
+    if (!diagnosisSelected) {
+        console.log(`SightFlow: Could not find diagnosis: ${diagnosisName}`);
+        return false;
+    }
+    
+    // Select eye location
+    await wait(300);
+    const locationSelected = await selectImpPlanEyeLocation(eyeLocation);
+    if (!locationSelected) {
+        console.log(`SightFlow: Could not select eye location: ${eyeLocation}`);
+        // Continue anyway as diagnosis was selected
+    }
+    
+    return true;
+}
+
+/**
+ * Collapses/saves the Imp/Plan section
+ * @returns True if successful, false if element not found
+ */
+async function collapseImpPlanSection() {
+    const impPlanSection = document.querySelector('chart-chart-section-imp-plan');
+    if (!impPlanSection) {
+        console.log('SightFlow: Could not find chart-chart-section-imp-plan element');
+        return false;
+    }
+    
+    impPlanSection.click();
+    console.log('SightFlow: Clicked chart-chart-section-imp-plan to collapse/save');
+    await wait(300);
+    return true;
+}
+
+/**
+ * Gets all problem/diagnosis list items from the Imp/Plan section
+ * Note: The LAST added diagnosis appears as the FIRST <li> item
+ * @returns Array of <li> elements, or empty array if not found
+ */
+function getImpPlanListItems() {
+    const chartImpression = document.querySelector('chart-impression');
+    if (!chartImpression) {
+        console.log('SightFlow: Could not find chart-impression element');
+        return [];
+    }
+    
+    // Use ul.table-layout to get the correct problem list (not dropdown-menu)
+    const ul = chartImpression.querySelector('ul.table-layout');
+    if (!ul) {
+        console.log('SightFlow: Could not find ul.table-layout element in chart-impression');
+        return [];
+    }
+    
+    // Get all li elements (they have class "row example-box")
+    const listItems = ul.querySelectorAll('li');
+    console.log(`SightFlow: Found ${listItems.length} problem list items`);
+    
+    // Log the diagnoses for debugging
+    listItems.forEach((li, i) => {
+        const titleSpan = li.querySelector('span.bold.handle');
+        const title = titleSpan ? titleSpan.textContent.trim() : 'Unknown';
+        console.log(`  ${i + 1}. ${title}`);
+    });
+    
+    return Array.from(listItems);
+}
+
+/**
+ * Clicks on the discussion-section div within a specific problem list item
+ * This opens the section for free text entry
+ * @param index - The index of the item (0 = first/most recently added, 1 = second, etc.)
+ * @returns True if successful, false if element not found
+ */
+async function clickImpPlanDiscussionSection(index = 0) {
+    const listItems = getImpPlanListItems();
+    
+    if (listItems.length === 0) {
+        console.log('SightFlow: No problem list items found');
+        return false;
+    }
+    
+    if (index >= listItems.length) {
+        console.log(`SightFlow: Index ${index} out of range, only ${listItems.length} items available`);
+        return false;
+    }
+    
+    const targetLi = listItems[index];
+    const discussionSection = targetLi.querySelector('div.discussion-section');
+    
+    if (!discussionSection) {
+        console.log(`SightFlow: Could not find discussion-section div in item ${index}`);
+        return false;
+    }
+    
+    // Get the diagnosis name for logging
+    const titleSpan = targetLi.querySelector('span.bold.handle');
+    const diagnosisName = titleSpan ? titleSpan.textContent.trim() : 'Unknown';
+    
+    discussionSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    await wait(100);
+    discussionSection.click();
+    console.log(`SightFlow: Clicked discussion-section for item ${index}: "${diagnosisName}"`);
+    await wait(300);
+    
+    return true;
+}
+
+/**
+ * Inserts text into the Quill editor for a specific problem list item's discussion
+ * @param index - The index of the item (0 = first/most recently added)
+ * @param text - The text to insert
+ * @returns True if successful, false if element not found
+ */
+async function insertImpPlanDiscussionText(index, text) {
+    // First open the discussion section
+    const opened = await clickImpPlanDiscussionSection(index);
+    if (!opened) {
+        console.log('SightFlow: Could not open discussion section');
+        return false;
+    }
+    
+    // Wait for Quill editor to appear
+    await wait(500);
+    
+    // Find the Quill editor
+    const qlEditor = document.querySelector('div.ql-editor');
+    if (!qlEditor) {
+        console.log('SightFlow: Could not find Quill editor (div.ql-editor)');
+        return false;
+    }
+    
+    console.log(`SightFlow: Inserting text into discussion: "${text}"`);
+    
+    // Set the text content
+    qlEditor.innerHTML = `<p>${text}</p>`;
+    
+    // Remove the "blank" class since we added content
+    qlEditor.classList.remove('ql-blank');
+    
+    // Dispatch input event so Angular picks up the change
+    qlEditor.dispatchEvent(new InputEvent('input', { bubbles: true }));
+    
+    console.log('SightFlow: Text inserted successfully');
+    await wait(200);
+    
+    return true;
+}
+
+/**
+ * Gets the diagnosis name at a specific index in the Imp/Plan list
+ * @param index - The index of the item (0 = first/most recently added)
+ * @returns The diagnosis name, or null if not found
+ */
+function getImpPlanDiagnosisName(index) {
+    const listItems = getImpPlanListItems();
+    if (index >= listItems.length) {
+        return null;
+    }
+    
+    const targetLi = listItems[index];
+    const titleSpan = targetLi.querySelector('span.bold.handle');
+    return titleSpan ? titleSpan.textContent.trim() : null;
+}
+
+// ==================== FOLLOW UP SECTION FUNCTIONS ====================
+
+/**
+ * Expands the Follow Up section by finding chart-plan and clicking the appropriate div
+ * @returns True if successful, false if element not found
+ */
+async function expandFollowUpSection() {
+    // Find the chart-plan element (parent element for follow up section)
+    const chartPlan = document.querySelector('chart-plan');
+    if (!chartPlan) {
+        console.log('SightFlow: Could not find chart-plan element');
+        return false;
+    }
+    console.log('SightFlow: Found chart-plan element');
+    
+    // Find the div with classes "table-layout chart-summary-box" within chart-plan
+    // This is the clickable area to expand the follow up section
+    const targetDiv = chartPlan.querySelector('div.table-layout.chart-summary-box');
+    
+    if (!targetDiv) {
+        console.log('SightFlow: Could not find chart-summary-box div in chart-plan');
+        // Log what divs are in chart-plan for debugging
+        const divsInPlan = chartPlan.querySelectorAll('div');
+        console.log(`SightFlow: Found ${divsInPlan.length} divs in chart-plan`);
+        divsInPlan.forEach((div, i) => {
+            if (i < 10) { // Log first 10 for debugging
+                console.log(`  Div ${i}: class="${div.className}"`);
+            }
+        });
+        return false;
+    }
+    
+    console.log('SightFlow: Found chart-summary-box div, clicking to expand Follow Up');
+    targetDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    targetDiv.click();
+    await wait(300);
+    return true;
+}
+
+/**
+ * Opens the doctor dropdown in Follow Up section and selects a doctor
+ * @param doctorName - The doctor name to select (e.g., "Dr. Banker", "Banker")
+ * @returns True if successful, false if element not found
+ */
+async function selectFollowUpDoctor(doctorName) {
+    // Find the chart-follow-up element
+    const chartFollowUp = document.querySelector('chart-follow-up');
+    if (!chartFollowUp) {
+        console.log('SightFlow: Could not find chart-follow-up element');
+        return false;
+    }
+    console.log('SightFlow: Found chart-follow-up element');
+    
+    // Find the first mat-form-field (doctor dropdown)
+    const matFormField = chartFollowUp.querySelector('mat-form-field');
+    if (!matFormField) {
+        console.log('SightFlow: Could not find mat-form-field in chart-follow-up');
+        return false;
+    }
+    console.log('SightFlow: Found doctor mat-form-field');
+    
+    // Step 1: Click the Clear button to clear the default doctor
+    const clearButton = matFormField.querySelector('button[aria-label="Clear"]');
+    if (clearButton) {
+        clearButton.click();
+        console.log('SightFlow: Clicked Clear button to remove default doctor');
+        await wait(300);
+    } else {
+        console.log('SightFlow: Clear button not found, continuing...');
+    }
+    
+    // Step 2: Click on the mat-form-field itself to open the dropdown
+    matFormField.click();
+    console.log('SightFlow: Clicked mat-form-field to open doctor dropdown');
+    await wait(500);
+    
+    // Extract just the last name for searching (e.g., "Dr. Banker" -> "Banker", "Dr Banker" -> "Banker")
+    let searchTerm = doctorName.trim();
+    // Remove "Dr.", "Dr ", "Doctor " prefixes to get just the name
+    searchTerm = searchTerm.replace(/^(dr\.?\s*|doctor\s+)/i, '').trim();
+    const normalizedSearch = searchTerm.toLowerCase().trim();
+    
+    console.log(`SightFlow: Looking for doctor with name containing: "${searchTerm}"`);
+    
+    // Find the dropdown listbox (it renders in a CDK overlay outside chart-follow-up)
+    const listbox = document.querySelector('div[role="listbox"].mat-autocomplete-panel');
+    if (!listbox) {
+        console.log('SightFlow: Could not find doctor dropdown listbox');
+        return false;
+    }
+    console.log('SightFlow: Found doctor dropdown listbox');
+    
+    // Find all mat-option elements
+    const options = listbox.querySelectorAll('mat-option');
+    console.log(`SightFlow: Found ${options.length} doctor options in dropdown`);
+    
+    // Find matching option by title attribute
+    let matchedOption = null;
+    for (const option of options) {
+        const title = option.getAttribute('title');
+        if (title) {
+            const normalizedTitle = title.toLowerCase().trim();
+            // Check if the title contains the search term (e.g., "Dr. Banker" contains "banker")
+            if (normalizedTitle.includes(normalizedSearch)) {
+                matchedOption = option;
+                console.log(`SightFlow: Found matching doctor: "${title}"`);
+                break;
+            }
+        }
+    }
+    
+    if (!matchedOption) {
+        console.log(`SightFlow: Could not find doctor matching "${doctorName}"`);
+        // Log first 10 available options for debugging
+        console.log('SightFlow: Available doctors (first 10):');
+        Array.from(options).slice(0, 10).forEach((opt, i) => {
+            console.log(`  ${i + 1}. ${opt.getAttribute('title')}`);
+        });
+        return false;
+    }
+    
+    // Scroll the option into view and click it
+    matchedOption.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    await wait(100);
+    matchedOption.click();
+    console.log(`SightFlow: Clicked on doctor: ${matchedOption.getAttribute('title')}`);
+    await wait(300);
+    return true;
+}
+
+/**
+ * Finds a mat-form-field by its mat-label text within chart-follow-up
+ * @param labelText - The label text to search for (e.g., "Number", "Time")
+ * @returns The mat-form-field element or null if not found
+ */
+function findFollowUpFormFieldByLabel(labelText) {
+    const chartFollowUp = document.querySelector('chart-follow-up');
+    if (!chartFollowUp) {
+        console.log('SightFlow: Could not find chart-follow-up element');
+        return null;
+    }
+    
+    // Find all mat-form-field elements
+    const formFields = chartFollowUp.querySelectorAll('mat-form-field');
+    
+    for (const formField of formFields) {
+        const matLabel = formField.querySelector('mat-label');
+        if (matLabel && matLabel.textContent.trim().toLowerCase() === labelText.toLowerCase()) {
+            return formField;
+        }
+    }
+    
+    console.log(`SightFlow: Could not find mat-form-field with label "${labelText}"`);
+    return null;
+}
+
+/**
+ * Selects a value from a mat-select dropdown in Follow Up section
+ * @param labelText - The label of the mat-form-field (e.g., "Number", "Time")
+ * @param valueText - The value text to select (e.g., "2", "Week")
+ * @returns True if successful, false if element not found
+ */
+async function selectFollowUpDropdownValue(labelText, valueText) {
+    const formField = findFollowUpFormFieldByLabel(labelText);
+    if (!formField) {
+        return false;
+    }
+    console.log(`SightFlow: Found ${labelText} mat-form-field`);
+    
+    // Find the mat-select inside and click it to open dropdown
+    const matSelect = formField.querySelector('mat-select');
+    if (!matSelect) {
+        console.log(`SightFlow: Could not find mat-select in ${labelText} form field`);
+        return false;
+    }
+    
+    matSelect.click();
+    console.log(`SightFlow: Clicked ${labelText} dropdown to open`);
+    await wait(200); // Wait for dropdown to appear
+    
+    // Find the dropdown panel (renders in CDK overlay)
+    const panel = document.querySelector('div.mat-select-panel');
+    if (!panel) {
+        console.log(`SightFlow: Could not find mat-select-panel for ${labelText}`);
+        return false;
+    }
+    
+    // Find all mat-option elements
+    const options = panel.querySelectorAll('mat-option');
+    console.log(`SightFlow: Found ${options.length} options in ${labelText} dropdown`);
+    
+    // Find matching option by span text
+    const normalizedValue = valueText.toString().toLowerCase().trim();
+    let matchedOption = null;
+    
+    for (const option of options) {
+        const spanText = option.querySelector('span.mat-option-text');
+        if (spanText) {
+            const optionText = spanText.textContent.trim().toLowerCase();
+            if (optionText === normalizedValue) {
+                matchedOption = option;
+                break;
+            }
+        }
+    }
+    
+    if (!matchedOption) {
+        console.log(`SightFlow: Could not find option "${valueText}" in ${labelText} dropdown`);
+        // Log available options for debugging
+        console.log(`SightFlow: Available ${labelText} options:`);
+        options.forEach((opt, i) => {
+            const span = opt.querySelector('span.mat-option-text');
+            if (span && i < 10) {
+                console.log(`  ${span.textContent.trim()}`);
+            }
+        });
+        return false;
+    }
+    
+    // Click the matched option
+    matchedOption.click();
+    console.log(`SightFlow: Selected ${labelText}: ${valueText}`);
+    await wait(200);
+    return true;
+}
+
+/**
+ * Selects the number in the Follow Up Number dropdown
+ * @param number - The number to select (e.g., "2", 2)
+ * @returns True if successful
+ */
+async function selectFollowUpNumber(number) {
+    return await selectFollowUpDropdownValue('Number', number.toString());
+}
+
+/**
+ * Selects the time unit in the Follow Up Time dropdown
+ * Converts plural to singular (weeks -> Week, days -> Day, months -> Month)
+ * @param timeUnit - The time unit (e.g., "weeks", "week", "Week", "days", "month")
+ * @returns True if successful
+ */
+async function selectFollowUpTimeUnit(timeUnit) {
+    // Normalize: convert to singular and capitalize first letter
+    let normalized = timeUnit.toLowerCase().trim();
+    
+    // Remove trailing 's' for singular form
+    if (normalized.endsWith('s')) {
+        normalized = normalized.slice(0, -1);
+    }
+    
+    // Capitalize first letter to match dropdown format (Day, Week, Month)
+    normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    
+    console.log(`SightFlow: Selecting time unit: "${normalized}" (from "${timeUnit}")`);
+    return await selectFollowUpDropdownValue('Time', normalized);
 }
