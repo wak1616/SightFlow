@@ -46,6 +46,7 @@ VALID COMMANDS (exact format required):
 - {"name": "sf-insert-psfhros", "params": {"conditionsToSelect": ["array", "of", "strings"]}}
 - {"name": "sf-insert-vision", "params": {"odWithGlasses": "string (e.g. 20/20)", "osWithGlasses": "string", "odWithoutGlasses": "string", "osWithoutGlasses": "string"}} (all params optional, include only those mentioned)
 - {"name": "sf-insert-iop", "params": {"od": "string (e.g. 12)", "os": "string"}} (include only eyes mentioned)
+- {"name": "sf-insert-refraction", "params": {"od": {"sphere": "string", "cylinder": "string", "axis": "string", "add": "string (optional)"}, "os": {"sphere": "string", "cylinder": "string", "axis": "string", "add": "string (optional)"}}} (MR Dry refraction - sphere e.g. "-1.00", "Plano"; cylinder e.g. "-0.50"; axis e.g. "090"; add e.g. "+2.50")
 - {"name": "sf-exam-external-defaults", "params": {}} (sets External exam to normal/defaults - use when external exam is normal, no APD, motility normal, ortho, CVF full)
 - {"name": "sf-exam-anterior-defaults", "params": {}} (sets Anterior Segment exam to defaults - lids, conjunctiva, sclera, cornea, AC, iris normal)
 - {"name": "sf-exam-anterior-lens", "params": {"od": "string", "os": "string"}} (lens/cataract/IOL findings - e.g. "2+ NS", "PCIOL well-centered", "clear", "PSC", "cortical changes")
@@ -64,7 +65,8 @@ SECTION MAPPING RULES:
 4. Past medical history → PSFH/ROS section, PMHx subsection
 5. Visual acuity / vision measurements (e.g. "20/20", "20/400", "vision with glasses", "vision without glasses") → V & P section, use sf-insert-vision command. "with glasses"/"with correction"/"cc" = WithGlasses params. "without glasses"/"without correction"/"sc"/"Dsc" = WithoutGlasses params. OD=right eye, OS=left eye.
 6. Intraocular pressure / IOP measurements (e.g. "pressure is 12", "IOP 15") → V & P section, use sf-insert-iop command
-7. External exam findings (pupils, motility, CVF/confrontation visual fields, adnexa, no APD, ortho) → Exam section. If normal/unremarkable, use sf-exam-external-defaults command
+7. Refraction / manifest refraction / MR / glasses prescription (sphere, cylinder, axis, add) → V & P section, use sf-insert-refraction command. Format values with +/- signs (e.g. "-1.00", "+2.50", "Plano"). Axis as 3-digit number (e.g. "090", "180")
+8. External exam findings (pupils, motility, CVF/confrontation visual fields, adnexa, no APD, ortho) → Exam section. If normal/unremarkable, use sf-exam-external-defaults command
 8. Anterior Segment exam findings (lids, conjunctiva, sclera, cornea, anterior chamber, iris) → Exam section. If normal/unremarkable, use sf-exam-anterior-defaults command
 9. Lens/cataract/IOL findings (NS cataract, PSC, cortical, PCIOL, clear lens, IOL well-centered) → Exam section, use sf-exam-anterior-lens command with od/os params for each eye's findings
 10. Posterior Segment/retina exam findings (vitreous, disc, macula, vessels, periphery) → Exam section. If normal/unremarkable, use sf-exam-posterior-defaults command
@@ -321,7 +323,7 @@ async function startRecording() {
     
     // Update UI
     listenButton.classList.add('listening');
-    listenButton.querySelector('.listen-text').textContent = 'Stop';
+    listenButton.querySelector('.listen-text').textContent = 'Finish';
     showStatus('Listening...', 'success');
   } catch (error) {
     console.error('Failed to start recording:', error);
@@ -603,7 +605,7 @@ async function executePlan() {
         // Clear the plan after successful execution
         currentPlan = null;
         planCardsContainer.innerHTML = '';
-        inputTextarea.value = '';
+        // Keep input text so user can modify and resend to AI
         updateSectionsHighlight();
         updateExecuteButtonState();
       }

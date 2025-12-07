@@ -390,7 +390,7 @@ async function executeFollowUpCommands(commands) {
 async function executeVPCommands(commands) {
     console.log('SightFlow: Starting V&P section batch execution');
     
-    // Collect vision and IOP data from all commands
+    // Collect vision, IOP, and refraction data from all commands
     let visionData = {
         odWithGlasses: null,
         osWithGlasses: null,
@@ -400,6 +400,10 @@ async function executeVPCommands(commands) {
     let iopData = {
         od: null,
         os: null
+    };
+    let refractionData = {
+        od: null,  // {sphere, cylinder, axis, add}
+        os: null   // {sphere, cylinder, axis, add}
     };
     
     for (const command of commands) {
@@ -419,6 +423,12 @@ async function executeVPCommands(commands) {
             if (commandParams.od) iopData.od = commandParams.od;
             if (commandParams.os) iopData.os = commandParams.os;
         }
+        
+        if (commandName === 'sf-insert-refraction') {
+            // Extract refraction values
+            if (commandParams.od) refractionData.od = commandParams.od;
+            if (commandParams.os) refractionData.os = commandParams.os;
+        }
     }
     
     // Check if we have any vision data to enter
@@ -427,6 +437,9 @@ async function executeVPCommands(commands) {
     
     // Check if we have any IOP data to enter
     const hasIOPData = iopData.od || iopData.os;
+    
+    // Check if we have any refraction data to enter
+    const hasRefractionData = refractionData.od || refractionData.os;
     
     // Process Visual Acuity if we have vision data
     if (hasVisionData) {
@@ -460,10 +473,9 @@ async function executeVPCommands(commands) {
             await wait(200);
         }
         
-        // Collapse Visual Acuity section if no IOP data
-        if (!hasIOPData) {
-            console.log('SightFlow: No IOP data, collapsing Visual Acuity section');
-            // Click the circle flag again to collapse
+        // Collapse Visual Acuity section if no IOP or refraction data
+        if (!hasIOPData && !hasRefractionData) {
+            console.log('SightFlow: No IOP/refraction data, collapsing Visual Acuity section');
             const circleFlag = document.querySelector('[data-qa="assistedCodingVisualAcuityCircleFlag"]');
             if (circleFlag) {
                 circleFlag.click();
@@ -490,15 +502,26 @@ async function executeVPCommands(commands) {
             await wait(100);
         }
         
-        // Collapse IOP section by clicking circle flag again
-        const iopCircleFlag = document.querySelector('[data-qa="assistedCodingIOPCircleFlag"]');
-        if (iopCircleFlag) {
-            iopCircleFlag.click();
-            await wait(200);
+        // Collapse IOP section if no refraction data
+        if (!hasRefractionData) {
+            const iopCircleFlag = document.querySelector('[data-qa="assistedCodingIOPCircleFlag"]');
+            if (iopCircleFlag) {
+                iopCircleFlag.click();
+                await wait(200);
+            }
         }
     }
     
-    // Final collapse to ensure section is saved
-    collapse();
+    // Process Refraction if we have refraction data
+    if (hasRefractionData) {
+        console.log('SightFlow: Processing refraction data');
+        await inputFullRefraction(refractionData.od, refractionData.os);
+        // inputFullRefraction already clicks chart-section-v-and-p to save
+    } else {
+        // Only collapse if no refraction data (refraction saves itself)
+        await wait(200);
+        collapse();
+    }
+    
     console.log('SightFlow: V&P section batch execution complete');
 }

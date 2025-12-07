@@ -416,6 +416,303 @@ async function setIOPValue(eye, iopValue) {
     return true;
 }
 
+// ==================== REFRACTION FUNCTIONS ====================
+
+/**
+ * Opens the Refractions tab in V&P section
+ * @returns True if successful
+ */
+async function openRefractionsTab() {
+    const refractionsTab = document.querySelector('[data-qa="chart_vp_vpRefractionsTab"]');
+    if (!refractionsTab) {
+        console.log('SightFlow: Could not find Refractions tab');
+        return false;
+    }
+    refractionsTab.click();
+    console.log('SightFlow: Clicked Refractions tab');
+    await wait(300);
+    return true;
+}
+
+/**
+ * Clicks +Spec Rx button to add a new refraction
+ * @returns True if successful
+ */
+async function clickAddSpecRx() {
+    // Find the chart-refractions element first to scope our queries
+    const chartRefractions = document.querySelector('chart-refractions');
+    if (!chartRefractions) {
+        console.log('SightFlow: Could not find chart-refractions element');
+        return false;
+    }
+    
+    const specRxBtn = chartRefractions.querySelector('mdi-button[title="Insert Refraction"]');
+    if (!specRxBtn) {
+        console.log('SightFlow: Could not find +Spec Rx button in chart-refractions');
+        return false;
+    }
+    specRxBtn.click();
+    console.log('SightFlow: Clicked +Spec Rx button');
+    await wait(300);
+    return true;
+}
+
+/**
+ * Selects "MR Dry" from the refraction type dropdown
+ * @returns True if successful
+ */
+async function selectMRDry() {
+    // Find the chart-refractions element first to scope our queries
+    const chartRefractions = document.querySelector('chart-refractions');
+    if (!chartRefractions) {
+        console.log('SightFlow: Could not find chart-refractions element');
+        return false;
+    }
+    
+    // Click the mat-select dropdown within chart-refractions
+    const matSelect = chartRefractions.querySelector('mat-select');
+    if (!matSelect) {
+        console.log('SightFlow: Could not find refraction type dropdown in chart-refractions');
+        return false;
+    }
+    matSelect.click();
+    console.log('SightFlow: Opened refraction type dropdown');
+    
+    // Wait for dropdown options to load (they render in a CDK overlay outside chart-refractions)
+    await wait(400);
+    
+    // Find and click the "MR Dry" option - options are in cdk-overlay-container
+    const options = document.querySelectorAll('mat-option');
+    
+    for (const option of options) {
+        const optionText = option.textContent.trim();
+        if (optionText === 'MR Dry' || optionText.includes('MR Dry')) {
+            option.click();
+            console.log('SightFlow: Selected MR Dry');
+            await wait(300);
+            return true;
+        }
+    }
+    
+    console.log('SightFlow: Could not find MR Dry option');
+    return false;
+}
+
+/**
+ * Selects a value from the refraction picker table
+ * @param value - The value to select (e.g., "-1.00", "+2.50", "007", "Plano")
+ * @returns True if successful
+ */
+async function selectRefractionValue(value) {
+    // Find the chart-refractions element first to scope our queries
+    const chartRefractions = document.querySelector('chart-refractions');
+    if (!chartRefractions) {
+        console.log('SightFlow: Could not find chart-refractions element');
+        return false;
+    }
+    
+    // Find all picker buttons in the table within chart-refractions
+    const pickerBtns = chartRefractions.querySelectorAll('.pickerTextField');
+    const normalizedValue = value.toString().trim();
+    
+    for (const btn of pickerBtns) {
+        const btnText = btn.textContent.trim();
+        if (btnText === normalizedValue) {
+            btn.click();
+            console.log(`SightFlow: Selected refraction value: ${normalizedValue}`);
+            await wait(150);
+            return true;
+        }
+    }
+    
+    console.log(`SightFlow: Could not find refraction value: ${normalizedValue}`);
+    return false;
+}
+
+/**
+ * Clicks on the refraction cell for a specific component (Sph, Cyl, Axis, Add) and eye
+ * @param component - 'Sph', 'Cyl', 'Axis', or 'Add'
+ * @param eye - 'OD' or 'OS'
+ * @returns True if successful
+ */
+async function clickRefractionCell(component, eye) {
+    // Find the chart-refractions element first to scope our queries
+    const chartRefractions = document.querySelector('chart-refractions');
+    if (!chartRefractions) {
+        console.log('SightFlow: Could not find chart-refractions element');
+        return false;
+    }
+    
+    // Find the header cell for the component within chart-refractions
+    const headers = chartRefractions.querySelectorAll('.refraction-cell-header');
+    let headerIndex = -1;
+    
+    for (let i = 0; i < headers.length; i++) {
+        if (headers[i].textContent.trim() === component) {
+            headerIndex = i;
+            break;
+        }
+    }
+    
+    if (headerIndex === -1) {
+        console.log(`SightFlow: Could not find ${component} header`);
+        return false;
+    }
+    
+    // Find the parent of the header to get sibling cells
+    const headerParent = headers[headerIndex].parentElement;
+    if (!headerParent) {
+        console.log(`SightFlow: Could not find parent of ${component} header`);
+        return false;
+    }
+    
+    // Get all refraction-cell divs that are siblings
+    const cells = headerParent.querySelectorAll('.refraction-cell');
+    
+    // OD is the first cell (index 0), OS is the second cell (index 1)
+    const cellIndex = eye === 'OD' ? 0 : 1;
+    
+    if (cells.length > cellIndex) {
+        cells[cellIndex].click();
+        console.log(`SightFlow: Clicked ${component} cell for ${eye}`);
+        await wait(150);
+        return true;
+    }
+    
+    console.log(`SightFlow: Could not find ${component} cell for ${eye}`);
+    return false;
+}
+
+/**
+ * Inputs a complete refraction for one eye
+ * @param eye - 'OD' or 'OS'
+ * @param sphere - Sphere value (e.g., "-1.00", "Plano")
+ * @param cylinder - Cylinder value (e.g., "-0.50")
+ * @param axis - Axis value (e.g., "090", "007")
+ * @param add - Add value (optional, e.g., "+2.50")
+ * @returns True if successful
+ */
+async function inputRefractionForEye(eye, sphere, cylinder, axis, add = null) {
+    console.log(`SightFlow: Inputting refraction for ${eye}: Sph=${sphere}, Cyl=${cylinder}, Axis=${axis}, Add=${add || 'none'}`);
+    
+    // Click on the Sphere cell first (only needed for first eye or when starting)
+    // After selecting sphere, cylinder auto-selects, then axis, then add
+    
+    // Select sphere
+    if (sphere) {
+        await selectRefractionValue(sphere);
+        await wait(300);
+    }
+    
+    // Select cylinder (cell should auto-select after sphere)
+    if (cylinder) {
+        await selectRefractionValue(cylinder);
+        await wait(300);
+    }
+    
+    // Select axis (cell should auto-select after cylinder)
+    if (axis) {
+        // Format axis to 3 digits if needed
+        let formattedAxis = axis.toString().padStart(3, '0');
+        await selectRefractionValue(formattedAxis);
+        await wait(300);
+    }
+    
+    // Select add if provided (cell should auto-select after axis)
+    if (add) {
+        await selectRefractionValue(add);
+        await wait(300);
+    }
+    
+    console.log(`SightFlow: Completed refraction input for ${eye}`);
+    return true;
+}
+
+/**
+ * Opens refraction section and sets up for MR Dry entry
+ * @returns True if successful
+ */
+async function setupRefraction() {
+    // Open Refractions tab
+    const tabOpened = await openRefractionsTab();
+    if (!tabOpened) return false;
+    
+    // Click +Spec Rx
+    const specRxClicked = await clickAddSpecRx();
+    if (!specRxClicked) return false;
+    
+    // Select MR Dry
+    const mrDrySelected = await selectMRDry();
+    if (!mrDrySelected) return false;
+    
+    await wait(200);
+    return true;
+}
+
+/**
+ * Inputs complete refraction for both eyes
+ * @param odRefraction - Object with {sphere, cylinder, axis, add} for OD
+ * @param osRefraction - Object with {sphere, cylinder, axis, add} for OS
+ * @returns True if successful
+ */
+async function inputFullRefraction(odRefraction, osRefraction) {
+    console.log('SightFlow: Starting full refraction input');
+    
+    // Setup refraction (open tab, click +Spec Rx, select MR Dry)
+    const setupDone = await setupRefraction();
+    if (!setupDone) {
+        console.log('SightFlow: Failed to setup refraction');
+        return false;
+    }
+    
+    // Click on OD Sph cell to start
+    console.log('SightFlow: Clicking OD Sph cell to start');
+    await clickRefractionCell('Sph', 'OD');
+    await wait(300);
+    
+    // Input OD refraction
+    if (odRefraction) {
+        await inputRefractionForEye('OD', 
+            odRefraction.sphere, 
+            odRefraction.cylinder, 
+            odRefraction.axis, 
+            odRefraction.add
+        );
+    }
+    
+    // Wait for Angular to process OD before moving to OS
+    await wait(400);
+    
+    // Click on OS Sph cell to activate OS picker
+    console.log('SightFlow: Clicking OS Sph cell');
+    await clickRefractionCell('Sph', 'OS');
+    await wait(300);
+    
+    // Input OS refraction
+    if (osRefraction) {
+        await inputRefractionForEye('OS', 
+            osRefraction.sphere, 
+            osRefraction.cylinder, 
+            osRefraction.axis, 
+            osRefraction.add
+        );
+    }
+    
+    // Wait for Angular to process before clicking outside
+    await wait(500);
+    
+    // Click on V&P section to commit/save refraction changes
+    const vpSection = document.querySelector('chart-section-v-and-p');
+    if (vpSection) {
+        vpSection.click();
+        console.log('SightFlow: Clicked chart-section-v-and-p to save refraction');
+        await wait(800);
+    }
+    
+    console.log('SightFlow: Full refraction input complete');
+    return true;
+}
+
 // ==================== EXAM SECTION FUNCTIONS ====================
 
 /**
