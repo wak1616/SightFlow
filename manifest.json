@@ -25,7 +25,7 @@
         "scripts/shared_utils.js",
         "scripts/plan_executor.js"
       ],
-      "matches": ["https://app1.intellechart.net/Eye2MVC/Chart/Chart/Index/"],
+      "matches": ["https://app1.intellechart.net/Eye*MVC/Chart/Chart/Index/*"],
       "run_at": "document_idle",
       "all_frames": true
     }
